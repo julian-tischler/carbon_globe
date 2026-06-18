@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CarbonGlobe · CO₂ Dienstreisen</title>
+
+  <!-- MapLibre GL JS -->
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <link  href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+
+  <!-- Turf (global) -->
+  <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <!-- ── Map ─────────────────────────────────────────────────────────────── -->
+  <div id="map"></div>
+
+  <!-- ── Sidebar ─────────────────────────────────────────────────────────── -->
+  <aside id="sidebar">
+
+    <!-- Logo -->
+    <div class="sidebar-logo">
+      <div class="logo-icon">🌍</div>
+      <div>
+        <div class="logo-text">CarbonGlobe</div>
+        <div class="logo-sub">CO₂ Dienstreisen</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="team-tab">Team</button>
+      <button class="tab-btn"        data-tab="route-tab">Route</button>
+    </div>
+
+    <!-- ── TAB: Team ──────────────────────────────────────────────────── -->
+    <div id="team-tab" class="tab-pane active">
+
+      <!-- Add member -->
+      <div class="section">
+        <div class="section-title">Mitglied hinzufügen</div>
+        <input type="text" id="new-member-name" placeholder="Name eingeben…" style="margin-bottom:6px;" />
+        <input type="number" id="new-member-hours" placeholder="Arbeitsstunden (optional)" min="0.1" step="0.1" style="margin-bottom:6px;" />
+        <button id="btn-add-member" class="btn-primary" style="width:100%;">+ Mitglied hinzufügen</button>
+      </div>
+
+      <!-- Member list -->
+      <div class="section-title" style="padding:12px 16px 4px;">Mitglieder</div>
+      <div id="member-list" class="scroll-area"></div>
+
+    </div><!-- /team-tab -->
+
+    <!-- ── TAB: Route ─────────────────────────────────────────────────── -->
+    <div id="route-tab" class="tab-pane">
+
+      <!-- Route list header -->
+      <div class="section" style="padding-bottom:8px;">
+        <div class="section-title">Route hinzufügen</div>
+        <input type="text" id="new-route-name" placeholder="Routenname (z.B. Konferenz Wien)…" style="margin-bottom:6px;" />
+        <button id="btn-add-route" class="btn-primary" style="width:100%;margin-bottom:12px;">+ Route hinzufügen</button>
+        <div class="section-title" style="margin-bottom:6px;">Routen</div>
+        <div id="route-list"></div>
+      </div>
+
+      <!-- Travel mode -->
+      <div class="section">
+        <div class="section-title">Verkehrsmittel</div>
+        <div class="mode-row">
+          <button class="mode-btn" data-mode="plane">✈️ Flug</button>
+          <button class="mode-btn" data-mode="train">🚆 Bahn</button>
+          <button class="mode-btn" data-mode="car">🚗 Pkw</button>
+          <button class="mode-btn" data-mode="ecar">⚡ E-Pkw</button>
+          <button class="mode-btn" data-mode="bus">🚌 Bus</button>
+        </div>
+      </div>
+
+      <!-- Impact Factor -->
+      <div class="section">
+        <div class="section-title">Impact Factor</div>
+        <div class="impact-row">
+          <button class="impact-btn" data-impact="1">🔴 Niedrig</button>
+          <button class="impact-btn" data-impact="2">🟡 Mittel</button>
+          <button class="impact-btn" data-impact="3">🟢 Hoch</button>
+        </div>
+      </div>
+
+      <!-- Member assignment -->
+      <div class="section">
+        <div class="section-title">Mitglieder zuweisen</div>
+        <div id="member-assignment"></div>
+      </div>
+
+      <!-- Search -->
+      <div class="section">
+        <div class="section-title">Ort suchen</div>
+        <div class="add-form">
+          <input type="text" id="search-input" placeholder="Stadt, Flughafen…" />
+          <button id="btn-search" class="btn-primary" style="white-space:nowrap;padding:8px 12px;">→</button>
+        </div>
+      </div>
+
+      <!-- Waypoints -->
+      <div class="section-title" style="padding:10px 16px 4px;">Wegpunkte</div>
+      <div id="waypoint-list" class="scroll-area"></div>
+
+    </div><!-- /route-tab -->
+
+  </aside><!-- /sidebar -->
+
+  <!-- ── Dashboard panel ───────────────────────────────────────────────── -->
+  <aside id="dashboard-panel" class="glass">
+    <div class="dashboard-panel-header">
+      <div class="section-title">Dashboard</div>
+    </div>
+
+    <div id="stats-card" class="glass dashboard-stats-card">
+      <div id="stats-empty" style="color:var(--text-3);font-size:11px;">Keine aktive Route</div>
+      <div id="stats-data" style="display:none;">
+        <div class="stat-row">
+          <div class="stat-cell">
+            <div class="stat-label">Distanz</div>
+            <div class="stat-value" id="stat-dist">—</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-label">CO₂ / Person</div>
+            <div class="stat-value co2" id="stat-co2">—</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-label">Reisezeit</div>
+            <div class="stat-value" id="stat-time">—</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-label" id="stat-grade-label">Note</div>
+            <div class="stat-value" id="stat-grade" style="font-size:22px;font-weight:700;">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dashboard-panel-body">
+      <!-- Team total -->
+      <div class="dash-header">
+        <div class="dash-title">Team CO₂ gesamt</div>
+        <div class="dash-total" id="team-co2-total">0 kg</div>
+      </div>
+
+      <!-- Budget -->
+      <div class="budget-section" id="budget-section" style="display:none;">
+        <div class="budget-track">
+          <div class="budget-bar" id="team-budget-bar"></div>
+        </div>
+        <div class="budget-label" id="budget-remaining"></div>
+      </div>
+
+      <!-- Budget input -->
+      <div class="section" style="margin-bottom:16px;padding:12px 0 0;">
+        <div class="section-title">Team-Budget setzen (kg CO₂)</div>
+        <div class="budget-row">
+          <input type="number" id="budget-input" placeholder="z.B. 5000" min="1" />
+          <button id="btn-set-budget" class="btn-primary" style="white-space:nowrap;padding:8px 12px;">Setzen</button>
+        </div>
+      </div>
+
+      <!-- Route breakdown -->
+      <div class="section-title" style="margin-bottom:10px;">Routen-Übersicht</div>
+      <div id="dashboard-routes"></div>
+
+      <!-- Per-member breakdown -->
+      <div class="section-title" style="margin:16px 0 10px;">Mitglieder-Übersicht</div>
+      <div id="dashboard-members"></div>
+    </div>
+  </aside>
+
+  <!-- ── Topbar (settings) ─────────────────────────────────────────────────── -->
+  <div id="topbar">
+    <div id="settings-card" class="glass" style="display:flex;align-items:center;gap:8px;">
+      <span style="font-size:10px;color:var(--text-3);white-space:nowrap;text-transform:uppercase;letter-spacing:.6px;">Karte</span>
+      <select id="style-select" style="flex:1;">
+        <option value="https://tiles.openfreemap.org/styles/bright">Bright</option>
+        <option value="https://tiles.openfreemap.org/styles/liberty">Liberty</option>
+        <option value="https://tiles.openfreemap.org/styles/dark">Dark</option>
+        <option value="https://demotiles.maplibre.org/style.json">Libre Default</option>
+      </select>
+    </div>
+  </div><!-- /topbar -->
+
+  <!-- ── Hint bar ────────────────────────────────────────────────────────── -->
+  <div id="instructions">Rechtsklick · Wegpunkt setzen &nbsp;|&nbsp; Wegpunkt ziehen · Position ändern &nbsp;|&nbsp; ⊙ · Auf Karte zoomen</div>
+
+  <!-- ── Toast ───────────────────────────────────────────────────────────── -->
+  <div id="toast" class="toast"></div>
+
+  <!-- ── Scripts (plain JS, no bundler needed) ───────────────────────────── -->
+  <script src="js/constants.js"></script>
+  <script src="js/team.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>

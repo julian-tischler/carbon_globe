@@ -1,0 +1,25 @@
+## TODO
+Travel planner tool
+
+- [ ] color picking for routes/member
+- [ ] [!bug] map select hides routes
+- [ ] info panel weird
+- [ ] satisfaction factor?
+- [ ] travel methods
+- [ ] timeline
+	- plots for regression of co2
+- [ ] real world routes for non plane (?)
+- [ ] 
+
+
+## next
+impact high medium low
+independant journey window (pop up)
+group journeys
+add members after route planning drag n 
+drop
+fulltime equivalents
+
+credit climcalc
+
+dashboard right side
