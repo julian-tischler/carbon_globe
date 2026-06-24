@@ -74,7 +74,7 @@ window.CG.constants = (function () {
   const IMPACT_FACTORS = {
     1: { label: 'Niedrig',  icon: '🔴', weight: 1 },
     2: { label: 'Mittel',   icon: '🟡', weight: 3 },
-    3: { label: 'Hoch',     icon: '🟢', weight: 7 },
+    3: { label: 'Hoch',     icon: '🟢', weight: 70 },
   };
 
   // ── Grade thresholds ──────────────────────────────────────────────────────
