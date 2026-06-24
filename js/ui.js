@@ -85,6 +85,19 @@ window.CG.ui = (function () {
       cgMap.changeMapStyle(e.target.value);
     });
 
+    document.getElementById('btn-font-larger').addEventListener('click', () => {
+      _adjustFontSize(1);
+    });
+
+    document.getElementById('btn-font-smaller').addEventListener('click', () => {
+      _adjustFontSize(-1);
+    });
+
+    const themeToggle = document.getElementById('theme-toggle');
+    themeToggle.addEventListener('change', () => {
+      document.body.classList.toggle('light-theme', themeToggle.checked);
+    });
+
     // ── Info panel ──────────────────────────────────────────────────────────
     const infoBtn   = document.getElementById('btn-info-toggle');
     const infoPanel = document.getElementById('info-panel');
@@ -124,7 +137,11 @@ window.CG.ui = (function () {
   }
 
   // ── Map callbacks ──────────────────────────────────────────────────────────
-
+  function _adjustFontSize(delta) {
+    const current = parseFloat(getComputedStyle(document.documentElement).fontSize.replace('px', '')) || 13;
+    const next    = Math.min(18, Math.max(11, current + delta));
+    document.documentElement.style.fontSize = `${next}px`;
+  }
   function onMapClick(coords) {
     const r = team.getActiveRoute();
     if (!r) return showToast('Bitte zuerst eine Route auswählen oder erstellen.');

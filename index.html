@@ -36,6 +36,7 @@
     <div class="tab-bar">
       <button class="tab-btn active"        data-tab="route-tab">Route</button>
       <button class="tab-btn" data-tab="team-tab">Team</button>
+      <button class="tab-btn" data-tab="settings-tab">Einstellungen</button>
     </div>
 
     <!-- ── TAB: Team ──────────────────────────────────────────────────── -->
@@ -109,6 +110,31 @@
       <div id="waypoint-list" class="scroll-area"></div>
 
     </div><!-- /route-tab -->
+
+    <!-- ── TAB: Settings ───────────────────────────────────────────────── -->
+    <div id="settings-tab" class="tab-pane">
+      <div class="section">
+        <div class="section-title">Einstellungen</div>
+        <div class="settings-row">
+          <div class="settings-label">Schriftgröße</div>
+          <div class="settings-controls">
+            <button id="btn-font-smaller" class="btn-secondary">A-</button>
+            <button id="btn-font-larger" class="btn-secondary">A+</button>
+          </div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-label">Theme</div>
+          <label class="theme-toggle">
+            <input type="checkbox" id="theme-toggle" />
+            <span>Helles Design</span>
+          </label>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">Hinweis</div>
+        <div class="empty-hint" style="padding:0;margin:0;">Änderungen werden sofort übernommen und bleiben während der Sitzung aktiv.</div>
+      </div>
+    </div><!-- /settings-tab -->
 
   </aside><!-- /sidebar -->
 

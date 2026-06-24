@@ -38,6 +38,46 @@ html, body {
   line-height: 1.5;
 }
 
+body.light-theme {
+  --bg: #f3f4f6;
+  --surface-1: #ffffff;
+  --surface-2: #f8fafc;
+  --surface-3: #e5e7eb;
+  --border: rgba(15, 23, 42, 0.08);
+  --border-hover: rgba(15, 23, 42, 0.15);
+  --accent: #0d9488;
+  --accent-dim: rgba(13,148,136,0.15);
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --text-1: #111827;
+  --text-2: #4b5563;
+  --text-3: #6b7280;
+}
+
+body.light-theme #sidebar,
+body.light-theme #dashboard-panel,
+body.light-theme .glass {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: var(--border);
+}
+
+body.light-theme .section-title,
+body.light-theme .theme-toggle span,
+body.light-theme .member-name,
+body.light-theme .member-meta,
+body.light-theme .dash-name,
+body.light-theme .dash-co2,
+body.light-theme .route-stat,
+body.light-theme .wp-name {
+  color: var(--text-1);
+}
+
+body.light-theme button,
+body.light-theme select,
+body.light-theme input {
+  color: var(--text-1);
+}
+
 /* ─── Map ────────────────────────────────────────────────────────────────────── */
 #map {
   position: absolute;
@@ -54,16 +94,36 @@ html, body {
   z-index: 10;
   display: flex;
   flex-direction: column;
+  min-height: 0;
   background: rgba(8, 12, 18, 0.88);
   backdrop-filter: var(--panel-blur);
   border-right: 1px solid var(--border);
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+#sidebar .tab-pane {
+  display: none;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+#sidebar .tab-pane.active {
+  display: flex;
+}
+
+#sidebar .tab-bar,
+#sidebar .sidebar-logo {
+  flex-shrink: 0;
 }
 
 #dashboard-panel {
   position: absolute;
   top: 16px; right: 16px; bottom: 16px;
-  width: 360px;
+  width: min(380px, calc(100vw - 30px));
+  max-width: 420px;
   z-index: 10;
   display: flex;
   flex-direction: column;
@@ -98,6 +158,100 @@ html, body {
 }
 
 #topbar > * { pointer-events: auto; }
+
+@media (max-width: 1320px) {
+  #sidebar {
+    width: 280px;
+  }
+
+  #dashboard-panel {
+    width: min(360px, calc(100vw - 40px));
+    right: 12px;
+  }
+
+  #topbar {
+    left: 292px;
+    right: 12px;
+  }
+
+  #instructions {
+    left: 12px;
+    right: 12px;
+    width: auto;
+  }
+}
+
+@media (max-width: 1180px) {
+  #sidebar {
+    width: 250px;
+  }
+
+  #topbar {
+    left: 266px;
+  }
+}
+
+@media (max-width: 1040px) {
+  #sidebar {
+    width: 220px;
+  }
+
+  #topbar {
+    left: 236px;
+  }
+
+  #dashboard-panel {
+    width: min(340px, calc(100vw - 24px));
+  }
+}
+
+@media (max-width: 860px) {
+  #sidebar {
+    width: 100%;
+    height: auto;
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: auto;
+    max-height: 46vh;
+    z-index: 20;
+    overflow-y: auto;
+  }
+
+  #dashboard-panel {
+    position: fixed;
+    top: calc(46vh + 12px);
+    right: 12px;
+    left: 12px;
+    bottom: 12px;
+    width: auto;
+  }
+
+  #dashboard-panel .dashboard-panel-body {
+    padding-right: 10px;
+  }
+
+  #topbar {
+    position: fixed;
+    top: calc(46vh + 12px);
+    left: 12px;
+    right: 12px;
+    width: auto;
+  }
+
+  #map {
+    top: calc(46vh + 12px);
+  }
+
+  .tab-bar {
+    gap: 6px;
+  }
+
+  .tab-btn {
+    padding: 10px 4px;
+    font-size: 10px;
+  }
+}
 
 .topbar-info-card {
   position: relative;
@@ -264,6 +418,40 @@ html, body {
 #team-tab { overflow: hidden; }
 #team-tab .scroll-area { flex: 1; min-height: 80px; }
 
+.settings-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 0;
+}
+
+.settings-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.settings-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-2);
+  cursor: pointer;
+  user-select: none;
+}
+
+.theme-toggle input {
+  width: auto;
+  margin: 0;
+}
+
 /* Section within tab pane */
 .section {
   padding: 14px 16px;
@@ -407,6 +595,17 @@ button {
   overflow-y: auto;
   flex: 1;
   padding: 8px 0;
+}
+
+#route-list,
+#member-list,
+#waypoint-list,
+#dashboard-routes,
+#dashboard-members {
+  overflow-y: auto;
+  max-height: 280px;
+  min-height: 120px;
+  padding-right: 4px;
 }
 
 .scroll-area::-webkit-scrollbar { width: 4px; }
