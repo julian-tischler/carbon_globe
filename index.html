@@ -34,12 +34,12 @@
 
     <!-- Tabs -->
     <div class="tab-bar">
-      <button class="tab-btn active" data-tab="team-tab">Team</button>
-      <button class="tab-btn"        data-tab="route-tab">Route</button>
+      <button class="tab-btn active"        data-tab="route-tab">Route</button>
+      <button class="tab-btn" data-tab="team-tab">Team</button>
     </div>
 
     <!-- ── TAB: Team ──────────────────────────────────────────────────── -->
-    <div id="team-tab" class="tab-pane active">
+    <div id="team-tab" class="tab-pane">
 
       <!-- Add member -->
       <div class="section">
@@ -56,7 +56,7 @@
     </div><!-- /team-tab -->
 
     <!-- ── TAB: Route ─────────────────────────────────────────────────── -->
-    <div id="route-tab" class="tab-pane">
+    <div id="route-tab" class="tab-pane active">
 
       <!-- Route list header -->
       <div class="section" style="padding-bottom:8px;">
@@ -177,8 +177,12 @@
   </aside>
 
   <!-- ── Topbar (settings) ─────────────────────────────────────────────────── -->
-  <div id="topbar">
-    <div id="settings-card" class="glass" style="display:flex;align-items:center;gap:8px;">
+  <div id="topbar">    <div id="info-card" class="glass topbar-info-card">
+      <button id="btn-info-toggle" class="icon-btn" title="Info">i</button>
+      <div id="info-panel" class="info-panel" aria-hidden="true">
+        Die CO₂ Werte sind Schätzwerte, die mit Daten des ClimCalc-Tools berechnet wurden. Tatsächliche Werte sind natürlich von echten Routen und Straßen abhängig.
+      </div>
+    </div>    <div id="settings-card" class="glass" style="display:flex;align-items:center;gap:8px;">
       <span style="font-size:10px;color:var(--text-3);white-space:nowrap;text-transform:uppercase;letter-spacing:.6px;">Karte</span>
       <select id="style-select" style="flex:1;">
         <option value="https://tiles.openfreemap.org/styles/bright">Bright</option>

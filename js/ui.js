@@ -85,6 +85,22 @@ window.CG.ui = (function () {
       cgMap.changeMapStyle(e.target.value);
     });
 
+    // ── Info panel ──────────────────────────────────────────────────────────
+    const infoBtn   = document.getElementById('btn-info-toggle');
+    const infoPanel = document.getElementById('info-panel');
+
+    infoBtn.addEventListener('click', () => {
+      const isOpen = infoPanel.classList.toggle('open');
+      infoPanel.setAttribute('aria-hidden', !isOpen);
+    });
+
+    document.addEventListener('click', e => {
+      if (!infoPanel.classList.contains('open')) return;
+      if (e.target === infoBtn || infoBtn.contains(e.target) || infoPanel.contains(e.target)) return;
+      infoPanel.classList.remove('open');
+      infoPanel.setAttribute('aria-hidden', 'true');
+    });
+
     // ── Tabs ──────────────────────────────────────────────────────────────
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {

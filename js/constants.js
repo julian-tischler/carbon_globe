@@ -73,7 +73,7 @@ window.CG.constants = (function () {
   // Numeric weight used in grade denominator. Higher = journey matters more = grade easier.
   const IMPACT_FACTORS = {
     1: { label: 'Niedrig',  icon: '🔴', weight: 1 },
-    2: { label: 'Mittel',   icon: '🟡', weight: 3 },
+    2: { label: 'Mittel',   icon: '🟡', weight: 20 },
     3: { label: 'Hoch',     icon: '🟢', weight: 70 },
   };
 
