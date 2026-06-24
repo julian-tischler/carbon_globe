@@ -188,8 +188,13 @@ window.CG.ui = (function () {
     });
 
     el.querySelectorAll('.js-member-hours').forEach(field => {
+      let committed = false;
+
       const saveHours = () => {
-        const id = field.dataset.id;
+        if (committed) return;   // 'change' and 'blur' both fire on commit — only handle once
+        committed = true;
+
+        const id    = field.dataset.id;
         const value = parseFloat(field.value);
         if (!isNaN(value) && value > 0) {
           team.setMemberHours(id, value);
@@ -197,8 +202,8 @@ window.CG.ui = (function () {
         renderAll();
       };
 
-      field.addEventListener('blur', saveHours);
       field.addEventListener('change', saveHours);
+      field.addEventListener('blur', saveHours);
       field.addEventListener('keypress', e => {
         if (e.key === 'Enter') {
           e.preventDefault();
