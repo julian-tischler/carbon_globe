@@ -17,7 +17,7 @@ window.CG.team = (function () {
 
   let _activeMemberId = null;
   let _activeRouteId  = null;
-  let _teamBudget     = 0;
+  let _teamBudget     = 10000; // default: 10 t CO₂
 
   // ── Members ───────────────────────────────────────────────────────────────
 
@@ -208,6 +208,26 @@ window.CG.team = (function () {
     return total;
   }
 
+  /**
+   * Averaged grade across all routes that have actual emissions and at
+   * least one assigned member. Averages the underlying numeric score
+   * (not the letter grades) and re-maps it through the same thresholds,
+   * so it stays consistent with individual route grades.
+   */
+  function getTeamGrade() {
+    const scores = [];
+    for (const r of _routes.values()) {
+      const { co2Kg } = getRouteStats(r);
+      if (co2Kg > 0 && r.assignedMemberIds.length > 0) {
+        scores.push(getRouteGrade(r).score);
+      }
+    }
+    if (!scores.length) return null;
+    const avgScore = scores.reduce((sum, s) => sum + s, 0) / scores.length;
+    const entry = C.GRADE_THRESHOLDS.find(t => avgScore <= t.max) ?? C.GRADE_THRESHOLDS.at(-1);
+    return { grade: entry.grade, color: entry.color, score: avgScore };
+  }
+
   function setTeamBudget(kg) { _teamBudget = kg; }
   function getTeamBudget()   { return _teamBudget; }
 
@@ -227,7 +247,7 @@ window.CG.team = (function () {
     // Waypoints
     addWaypoint, removeWaypoint, moveWaypoint,
     // Stats
-    getRouteStats, getRouteGrade, getMemberCO2, getTeamCO2,
+    getRouteStats, getRouteGrade, getMemberCO2, getTeamCO2, getTeamGrade,
     // Budget
     setTeamBudget, getTeamBudget,
   };

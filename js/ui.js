@@ -452,26 +452,42 @@ window.CG.ui = (function () {
 
   // ── Dashboard ──────────────────────────────────────────────────────────────
 
+  /** Formats kg as tons without trailing ".0", e.g. 5000 -> "5t", 5400 -> "5.4t" */
+  function _formatTons(kg) {
+    const tons = kg / 1000;
+    const rounded = Math.round(tons * 10) / 10;
+    return `${rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(1)}t`;
+  }
+
   function renderDashboard() {
     const members = team.getMembers();
     const routes  = team.getRoutes();
     const teamCO2 = team.getTeamCO2();
     const budget  = team.getTeamBudget();
 
-    document.getElementById('team-co2-total').textContent = C.formatCO2(teamCO2);
+    document.getElementById('team-co2-total').textContent =
+      budget > 0 ? `${_formatTons(teamCO2)} / ${_formatTons(budget)}` : _formatTons(teamCO2);
 
     const bar = document.getElementById('team-budget-bar');
-    const label = document.getElementById('budget-remaining');
     if (budget > 0) {
       const pct = Math.min((teamCO2 / budget) * 100, 100);
-      const rem = budget - teamCO2;
       bar.style.width = `${pct}%`;
       bar.style.background = 'var(--hero-accent)';
-      label.textContent = `${C.formatCO2(Math.max(rem, 0))} verbleibend von ${C.formatCO2(budget)}`;
     } else {
       bar.style.width = '0%';
       bar.style.background = 'rgba(255,255,255,0.08)';
-      label.textContent = 'Kein Budget gesetzt.';
+    }
+
+    const gradeBadge = document.getElementById('team-grade-badge');
+    const teamGrade  = team.getTeamGrade();
+    if (teamGrade) {
+      gradeBadge.textContent = teamGrade.grade;
+      gradeBadge.style.borderColor = teamGrade.color;
+      gradeBadge.style.color = teamGrade.color;
+    } else {
+      gradeBadge.textContent = '—';
+      gradeBadge.style.borderColor = 'rgba(255,255,255,0.14)';
+      gradeBadge.style.color = 'var(--text-1)';
     }
 
     // Route breakdown

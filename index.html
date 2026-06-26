@@ -147,15 +147,17 @@
     <div class="dashboard-panel-body">
       <section class="dashboard-hero-card">
         <div class="hero-top">
-          <div class="hero-label">Team CO₂ gesamt</div>
-          <div class="hero-total" id="team-co2-total">0 kg</div>
+          <div class="hero-label">Gesamte CO2 Emissionen</div>
+          <div class="hero-total" id="team-co2-total">0t / 10t</div>
         </div>
-        <div class="hero-support">Budget-Fortschritt und Teamziel im Vergleich</div>
+        <div class="hero-grade-row">
+          <span class="hero-support">Gesamtnote</span>
+          <span class="hero-grade-badge" id="team-grade-badge">—</span>
+        </div>
         <div class="hero-progress" aria-label="Budget Progress">
           <div class="hero-progress-track">
             <div class="hero-progress-fill" id="team-budget-bar"></div>
           </div>
-          <div class="hero-progress-text" id="budget-remaining"></div>
         </div>
       </section>
 
