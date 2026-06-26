@@ -926,7 +926,7 @@ button {
   text-align: right;
   outline: none;
   transition: border-color var(--transition), box-shadow var(--transition);
-  -moz-appearance: textfield;
+  /* -moz-appearance: textfield; */
 }
 
 .member-hours:focus {
