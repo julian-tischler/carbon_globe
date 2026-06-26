@@ -127,9 +127,12 @@ window.CG.ui = (function () {
 
   function _handleAddMember() {
     const input = document.getElementById('new-member-name');
-    const hours = parseFloat(document.getElementById('new-member-hours').value);
+    const hoursRaw = parseFloat(document.getElementById('new-member-hours').value);
+    const hours = isNaN(hoursRaw) || hoursRaw <= 0
+      ? 1
+      : Math.min(Math.max(Math.round(hoursRaw * 2) / 2, 0.5), 80);
     const name  = input.value.trim() || `Mitglied ${team.getMembers().length + 1}`;
-    const id    = team.addMember(name, isNaN(hours) || hours <= 0 ? 1 : hours);
+    const id    = team.addMember(name, hours);
     team.setActiveMember(id);
     input.value = '';
     document.getElementById('new-member-hours').value = '';
@@ -147,11 +150,13 @@ window.CG.ui = (function () {
     if (!r) return showToast('Bitte zuerst eine Route auswählen oder erstellen.');
     team.addWaypoint(r.id, coords);
     cgMap.updateRouteLayers(team.getRoute(r.id));
-    renderAll();
+    renderWaypointList();
+    renderDashboard();
   }
 
   function onWaypointDragEnd() {
-    renderAll();
+    renderWaypointList();
+    renderDashboard();
   }
 
   // ── Master render ──────────────────────────────────────────────────────────
@@ -161,7 +166,6 @@ window.CG.ui = (function () {
     renderRouteList();
     renderWaypointList();
     renderMemberAssignment();
-    renderStatsPanel();
     renderModeSwitcher();
     renderImpactSwitcher();
     renderDashboard();
@@ -180,19 +184,17 @@ window.CG.ui = (function () {
     }
 
     el.innerHTML = members.map(m => {
-      const co2   = team.getMemberCO2(m.id);
       const hours = m.workingHours || 1;
       return `
         <div class="member-item ${m.id === active?.id ? 'active' : ''}"
-             data-id="${m.id}" style="--member-color:${m.color}">
-          <div class="member-dot" style="background:${m.color}"></div>
+             data-id="${m.id}">
+          <div class="member-dot"></div>
           <div class="member-info">
             <span class="member-name js-member-name" contenteditable="true" data-id="${m.id}">${C.escHtml(m.name)}</span>
             <label class="member-hours-wrapper">
-              <input type="number" class="member-hours js-member-hours" data-id="${m.id}" min="0.1" step="0.1" value="${hours.toFixed(1)}" title="Arbeitsstunden bearbeiten" />
-              <span class="member-hours-suffix">h</span>
+              <input type="number" class="member-hours js-member-hours" data-id="${m.id}" min="0.5" max="80" step="0.5" value="${hours.toFixed(1)}" title="Arbeitsstunden pro Woche bearbeiten" />
+              <span class="member-hours-suffix">h / Woche</span>
             </label>
-            <span class="member-meta">${C.formatCO2(co2)}</span>
           </div>
           <button class="icon-btn js-del-member" data-id="${m.id}" title="Löschen">✕</button>
         </div>`;
@@ -210,7 +212,8 @@ window.CG.ui = (function () {
       field.addEventListener('blur', () => {
         const id = field.dataset.id;
         team.setMemberName(id, field.textContent);
-        renderAll();
+        // Don't call renderAll() - only update dashboard
+        renderDashboard();
       });
       field.addEventListener('keypress', e => {
         if (e.key === 'Enter') {
@@ -221,22 +224,26 @@ window.CG.ui = (function () {
     });
 
     el.querySelectorAll('.js-member-hours').forEach(field => {
-      let committed = false;
-
-      const saveHours = () => {
-        if (committed) return;   // 'change' and 'blur' both fire on commit — only handle once
-        committed = true;
-
+      // Save to team data on every keystroke — team is the source of truth
+      field.addEventListener('input', () => {
         const id    = field.dataset.id;
         const value = parseFloat(field.value);
         if (!isNaN(value) && value > 0) {
-          team.setMemberHours(id, value);
+          team.setMemberHours(id, Math.min(value, 80));
         }
-        renderAll();
-      };
+      });
 
-      field.addEventListener('change', saveHours);
-      field.addEventListener('blur', saveHours);
+      // Snap to nearest 0.5 and clamp to [0.5, 80] once the user is done editing
+      field.addEventListener('blur', () => {
+        const id    = field.dataset.id;
+        const raw   = parseFloat(field.value);
+        const value = isNaN(raw) || raw <= 0
+          ? team.getMemberHours(id)
+          : Math.min(Math.max(Math.round(raw * 2) / 2, 0.5), 80);
+        team.setMemberHours(id, value);
+        field.value = value.toFixed(1);
+      });
+
       field.addEventListener('keypress', e => {
         if (e.key === 'Enter') {
           e.preventDefault();
@@ -268,34 +275,28 @@ window.CG.ui = (function () {
     }
 
     el.innerHTML = routes.map(route => {
-      const s       = team.getRouteStats(route);
+      const s         = team.getRouteStats(route);
       const gradeInfo = team.getRouteGrade(route);
-      const icon    = C.CO2_FACTORS[route.mode]?.icon ?? '✈️';
-      const impact  = C.IMPACT_FACTORS[route.impactFactor];
+      const impact    = C.IMPACT_FACTORS[route.impactFactor];
       const memberCount = route.assignedMemberIds.length;
-      const showGrade   = s.co2Kg > 0 && memberCount > 0;
+      const showGrade = s.co2Kg > 0 && memberCount > 0;
 
       return `
         <div class="route-item ${route.id === activeRouteId ? 'active' : ''}"
              data-route-id="${route.id}">
           <div class="route-header">
-            <span class="route-icon">${icon}</span>
             <span class="route-label js-route-label"
                   contenteditable="true"
                   data-route-id="${route.id}">${C.escHtml(route.label)}</span>
             <button class="icon-btn js-del-route" data-id="${route.id}" title="Löschen">✕</button>
           </div>
-          <div class="route-meta">
-            <span class="route-stat">${Math.round(s.distanceKm).toLocaleString('de')} km</span>
-            <span class="co2-badge">${C.formatCO2(s.co2Kg)}</span>
-            <span class="impact-chip" title="Impact Factor">${impact.icon} ${impact.label}</span>
+          <div class="route-summary">
+            <span>${impact.icon} ${impact.label}</span>
+            <span>${memberCount} Person${memberCount !== 1 ? 'en' : ''}</span>
             ${showGrade
-              ? `<span class="grade-badge" style="background:${gradeInfo.color}20;color:${gradeInfo.color};border-color:${gradeInfo.color}40">${gradeInfo.grade}</span>`
+              ? `<span class="grade-badge">${gradeInfo.grade}</span>`
               : `<span class="grade-badge grade-pending">—</span>`}
           </div>
-          ${memberCount > 0
-            ? `<div class="route-assigned">${_memberDots(route.assignedMemberIds)}</div>`
-            : ''}
         </div>`;
     }).join('');
 
@@ -330,7 +331,7 @@ window.CG.ui = (function () {
     return memberIds.map(id => {
       const m = team.getMember(id);
       if (!m) return '';
-      return `<span class="member-dot-sm" style="background:${m.color}" title="${C.escHtml(m.name)}"></span>`;
+      return `<span class="member-dot-sm" title="${C.escHtml(m.name)}"></span>`;
     }).join('');
   }
 
@@ -449,37 +450,6 @@ window.CG.ui = (function () {
     });
   }
 
-  // ── Stats panel (topbar) ───────────────────────────────────────────────────
-
-  function renderStatsPanel() {
-    const route = team.getActiveRoute();
-    const empty = !route || route.waypoints.length < 2;
-    document.getElementById('stats-empty').style.display = empty ? 'block' : 'none';
-    document.getElementById('stats-data').style.display  = empty ? 'none'  : 'block';
-
-    if (!empty) {
-      const s         = team.getRouteStats(route);
-      const gradeInfo = team.getRouteGrade(route);
-      const memberCount = route.assignedMemberIds.length;
-
-      document.getElementById('stat-dist').textContent  = `${Math.round(s.distanceKm).toLocaleString('de')} km`;
-      document.getElementById('stat-co2').textContent   = C.formatCO2(s.co2Kg);
-      document.getElementById('stat-time').textContent  = C.formatTime(s.timeHours);
-
-      // Grade cell
-      const gradeEl = document.getElementById('stat-grade');
-      if (memberCount > 0) {
-        gradeEl.textContent   = gradeInfo.grade;
-        gradeEl.style.color   = gradeInfo.color;
-        gradeEl.style.display = 'block';
-        document.getElementById('stat-grade-label').style.display = 'block';
-      } else {
-        gradeEl.style.display = 'none';
-        document.getElementById('stat-grade-label').style.display = 'none';
-      }
-    }
-  }
-
   // ── Dashboard ──────────────────────────────────────────────────────────────
 
   function renderDashboard() {
@@ -490,19 +460,18 @@ window.CG.ui = (function () {
 
     document.getElementById('team-co2-total').textContent = C.formatCO2(teamCO2);
 
-    // Budget bar
-    const budgetSection = document.getElementById('budget-section');
+    const bar = document.getElementById('team-budget-bar');
+    const label = document.getElementById('budget-remaining');
     if (budget > 0) {
-      budgetSection.style.display = 'block';
       const pct = Math.min((teamCO2 / budget) * 100, 100);
       const rem = budget - teamCO2;
-      const bar = document.getElementById('team-budget-bar');
-      bar.style.width      = `${pct}%`;
-      bar.style.background = pct >= 100 ? 'var(--danger)' : pct > 80 ? 'var(--warning)' : 'var(--accent)';
-      document.getElementById('budget-remaining').textContent =
-        `${C.formatCO2(Math.max(rem, 0))} verbleibend von ${C.formatCO2(budget)}`;
+      bar.style.width = `${pct}%`;
+      bar.style.background = 'var(--hero-accent)';
+      label.textContent = `${C.formatCO2(Math.max(rem, 0))} verbleibend von ${C.formatCO2(budget)}`;
     } else {
-      budgetSection.style.display = 'none';
+      bar.style.width = '0%';
+      bar.style.background = 'rgba(255,255,255,0.08)';
+      label.textContent = 'Kein Budget gesetzt.';
     }
 
     // Route breakdown
@@ -515,7 +484,6 @@ window.CG.ui = (function () {
         const gradeInfo   = team.getRouteGrade(r);
         const impact      = C.IMPACT_FACTORS[r.impactFactor];
         const memberCount = r.assignedMemberIds.length;
-        const totalCO2    = s.co2Kg * memberCount;
         const icon        = C.CO2_FACTORS[r.mode]?.icon ?? '✈️';
         const showGrade   = s.co2Kg > 0 && memberCount > 0;
 
@@ -526,21 +494,33 @@ window.CG.ui = (function () {
               <div style="display:flex;gap:6px;align-items:center;">
                 <span class="impact-chip">${impact.icon}</span>
                 ${showGrade
-                  ? `<span class="grade-badge" style="background:${gradeInfo.color}20;color:${gradeInfo.color};border-color:${gradeInfo.color}40">${gradeInfo.grade}</span>`
+                  ? `<span class="grade-badge">${gradeInfo.grade}</span>`
                   : `<span class="grade-badge grade-pending">—</span>`}
               </div>
             </div>
-            <div class="dash-route-stats">
-              <span>${memberCount} Person${memberCount !== 1 ? 'en' : ''}</span>
-              <span>${Math.round(s.distanceKm).toLocaleString('de')} km</span>
-              <span class="co2-badge">${C.formatCO2(totalCO2)} total</span>
+            <div class="stat-row">
+              <div class="stat-cell">
+                <div class="stat-label">Distanz</div>
+                <div class="stat-value">${Math.round(s.distanceKm).toLocaleString('de')} km</div>
+              </div>
+              <div class="stat-cell">
+                <div class="stat-label">CO₂ / Person</div>
+                <div class="stat-value co2">${C.formatCO2(s.co2Kg)}</div>
+              </div>
+              <div class="stat-cell">
+                <div class="stat-label">Personen</div>
+                <div class="stat-value">${memberCount}</div>
+              </div>
+              <div class="stat-cell">
+                <div class="stat-label">Reisezeit</div>
+                <div class="stat-value">${C.formatTime(s.timeHours)}</div>
+              </div>
             </div>
-            <div class="dash-trips" style="margin-top:4px;">${_memberDots(r.assignedMemberIds)}</div>
+            <div class="dash-trips" style="margin-top:10px;">${_memberDots(r.assignedMemberIds)}</div>
           </div>`;
       }).join('');
     }
 
-    // Member breakdown
     const memberContainer = document.getElementById('dashboard-members');
     if (!members.length) {
       memberContainer.innerHTML = `<div class="empty-hint">Noch keine Mitglieder.</div>`;
@@ -558,31 +538,30 @@ window.CG.ui = (function () {
       const budgetShare = budget > 0 ? (fte / totalFTE) * 100 : 0;
       const budgetAlloc = budget > 0 ? team.getMemberBudgetAllocation(m.id, budget) : 0;
       const usagePct    = budget > 0 ? (budgetAlloc > 0 ? (co2 / budgetAlloc) * 100 : 0) : (co2 / maxCO2) * 100;
-      const barPct      = budget > 0 ? usagePct : usagePct;
+      const barPct      = Math.min(usagePct, 100);
       const label       = budget > 0
         ? `${hours}h · ${Math.round(budgetShare)}% Budget · ${Math.round(usagePct)}% Auslastung`
         : `${Math.round(barPct)}% CO₂`;
       const overBudget  = budget > 0 && usagePct > 100;
-      const barWidth    = Math.min(barPct, 100);
-      // Chips: routes this member is on
+
       const chips = routes
-        .filter(r => r.assignedMemberIds.includes(m.id))
-        .map(r => {
-          const s    = team.getRouteStats(r);
-          const icon = C.CO2_FACTORS[r.mode]?.icon ?? '✈️';
-          return `<span class="dash-trip-chip">${icon} ${C.escHtml(r.label)} · ${C.formatCO2(s.co2Kg)}</span>`;
+        .filter(route => route.assignedMemberIds.includes(m.id))
+        .map(route => {
+          const s    = team.getRouteStats(route);
+          const icon = C.CO2_FACTORS[route.mode]?.icon ?? '✈️';
+          return `<span class="dash-trip-chip">${icon} ${C.escHtml(route.label)} · ${C.formatCO2(s.co2Kg)}</span>`;
         }).join('');
 
       return `
         <div class="dash-member">
           <div class="dash-member-header">
-            <span class="member-dot" style="background:${m.color}"></span>
+            <span class="member-dot"></span>
             <span class="dash-name">${C.escHtml(m.name)}</span>
             <span class="dash-co2">${C.formatCO2(co2)}${budget > 0 ? ` · ${C.formatCO2(budgetAlloc)} Budget` : ''}</span>
           </div>
           <div class="dash-bar-track ${overBudget ? 'over-budget' : ''}">
-            <div class="dash-bar" style="width:${barWidth}%;background:${m.color}"></div>
-            ${overBudget ? `<div class="dash-overflow" style="width:${Math.min(barPct - 100, 100)}%"></div>` : ''}
+            <div class="dash-bar" style="width:${barPct}%"></div>
+            ${overBudget ? `<div class="dash-overflow" style="width:${Math.min(usagePct - 100, 100)}%"></div>` : ''}
           </div>
           <div class="dash-bar-label">${label}</div>
           ${chips ? `<div class="dash-trips">${chips}</div>` : '<div class="empty-hint" style="padding:4px 0;">Keiner Route zugewiesen.</div>'}
@@ -610,7 +589,8 @@ window.CG.ui = (function () {
       cgMap.updateRouteLayers(team.getRoute(r.id));
       cgMap.flyTo(coords, 5);
       input.value = '';
-      renderAll();
+      renderWaypointList();
+      renderDashboard();
     } catch (_) {
       showToast('Suchdienst nicht erreichbar.');
     }

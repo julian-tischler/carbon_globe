@@ -14,15 +14,15 @@
   cgUI.initUI();
 
   // Seed demo data
-  // const m1 = team.addMember('jan');
-  // const m2 = team.addMember('patrick');
-  // const m3 = team.addMember('michi');
+  const m1 = team.addMember('jan');
+  const m2 = team.addMember('patrick');
+  const m3 = team.addMember('michi');
 
-  // team.setActiveMember(m1);
+  team.setActiveMember(m1);
 
-  // const r1 = team.addRoute('indien');
-  // team.setActiveRoute(r1);
-  // team.assignMember(r1, m1);
+  const r1 = team.addRoute('indien');
+  team.setActiveRoute(r1);
+  team.assignMember(r1, m1);
 
   cgUI.renderAll();
 })();

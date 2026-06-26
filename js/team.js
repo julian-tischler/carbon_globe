@@ -28,7 +28,7 @@ window.CG.team = (function () {
       id,
       name,
       color,
-      workingHours: Number(workingHours) > 0 ? Number(workingHours) : 1,
+      workingHours: Number(workingHours) > 0 ? Math.min(Number(workingHours), 80) : 1,
     });
     return id;
   }
@@ -43,7 +43,7 @@ window.CG.team = (function () {
     const member = _members.get(id);
     if (!member) return;
     const value = Number(hours);
-    member.workingHours = value > 0 ? value : member.workingHours;
+    member.workingHours = value > 0 ? Math.min(value, 80) : member.workingHours;
   }
 
   function getMemberHours(id) {
@@ -217,7 +217,7 @@ window.CG.team = (function () {
     // Members
     addMember, removeMember, getMembers, getMember,
     setActiveMember, getActiveMember, getActiveMemberId,
-    getMemberHours, getMemberFTE, getTeamFTE, getMemberBudgetAllocation,
+    setMemberName, setMemberHours, getMemberHours, getMemberFTE, getTeamFTE, getMemberBudgetAllocation,
     // Routes
     addRoute, removeRoute, getRoutes, getRoute,
     setActiveRoute, getActiveRoute, getActiveRouteId,
