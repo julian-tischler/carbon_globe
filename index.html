@@ -149,6 +149,11 @@
         <div class="hero-top">
           <div class="hero-label">Gesamte CO2 Emissionen</div>
           <div class="hero-total" id="team-co2-total">0t / 10t</div>
+          <div class="hero-progress" aria-label="Budget Progress">
+            <div class="hero-progress-track">
+              <div class="hero-progress-fill" id="team-budget-bar"></div>
+            </div>
+          </div>
         </div>
         <div class="hero-top">
           <div class="hero-label">Gesamtnote</div>
@@ -158,17 +163,15 @@
           <div class="hero-label">Gesamter Impact</div>
           <div class="hero-total" id="team-impact-badge">0</div>
         </div>
-        <div class="hero-progress" aria-label="Budget Progress">
-          <div class="hero-progress-track">
-            <div class="hero-progress-fill" id="team-budget-bar"></div>
-          </div>
-        </div>
       </section>
 
       <section class="dashboard-card dashboard-budget-card">
         <div class="section-heading">Budget setzen</div>
         <div class="budget-row compact">
-          <input type="number" id="budget-input" placeholder="z.B. 5000" min="1" />
+          <div class="budget-input-wrapper">
+            <input type="number" id="budget-input" placeholder="z.B. 5000" min="1" />
+            <span class="budget-input-suffix">kg</span>
+          </div>
           <button id="btn-set-budget" class="btn-primary">Setzen</button>
         </div>
       </section>
