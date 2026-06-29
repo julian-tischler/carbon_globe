@@ -208,6 +208,17 @@ window.CG.team = (function () {
     return total;
   }
 
+  /** Team impact = sum of (impact weight × memberCount) per route. */
+  function getTeamImpact() {
+    let total = 0;
+    for (const r of _routes.values()) {
+      const factor = C.IMPACT_FACTORS[r.impactFactor];
+      const weight = factor ? factor.weight : 0;
+      total += weight * r.assignedMemberIds.length;
+    }
+    return total;
+  }
+
   /**
    * Averaged grade across all routes that have actual emissions and at
    * least one assigned member. Averages the underlying numeric score
@@ -247,7 +258,7 @@ window.CG.team = (function () {
     // Waypoints
     addWaypoint, removeWaypoint, moveWaypoint,
     // Stats
-    getRouteStats, getRouteGrade, getMemberCO2, getTeamCO2, getTeamGrade,
+    getRouteStats, getRouteGrade, getMemberCO2, getTeamCO2, getTeamGrade, getTeamImpact,
     // Budget
     setTeamBudget, getTeamBudget,
   };

@@ -1,5 +1,6 @@
-## TODO
-Travel planner tool
+## Travel Planner Tool
+##-------------------------------------
+## TODO low prio
 
 - [ ] color picking for routes/member
 - [ ] [!bug] map select hides routes
@@ -12,14 +13,22 @@ Travel planner tool
 - [ ] 
 
 
-## next
-impact high medium low
-independant journey window (pop up)
-group journeys
+##-------------------------------------
+## TODO JanHa
+
+impact high medium low				x
+independant journey window (pop up) 		x
+group journeys					x
 add members after route planning drag n 
-drop
-fulltime equivalents
+drop						x
+fulltime equivalents				x
 
 credit climcalc
 
-dashboard right side
+dashboard right side				x
+
+
+##-------------------------------------
+## BUGS
+
+- [ ] travel methods buttons

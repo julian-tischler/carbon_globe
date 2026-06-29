@@ -482,13 +482,14 @@ window.CG.ui = (function () {
     const teamGrade  = team.getTeamGrade();
     if (teamGrade) {
       gradeBadge.textContent = teamGrade.grade;
-      gradeBadge.style.borderColor = teamGrade.color;
       gradeBadge.style.color = teamGrade.color;
     } else {
       gradeBadge.textContent = '—';
-      gradeBadge.style.borderColor = 'rgba(255,255,255,0.14)';
       gradeBadge.style.color = 'var(--text-1)';
     }
+
+    document.getElementById('team-impact-badge').textContent =
+      Math.round(team.getTeamImpact()).toLocaleString('de');
 
     // Route breakdown
     const routeContainer = document.getElementById('dashboard-routes');
