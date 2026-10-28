@@ -45,13 +45,15 @@
       <!-- Add member -->
       <div class="section">
         <div class="section-title">Mitglied hinzufügen</div>
-        <input type="text" id="new-member-name" placeholder="Name eingeben…" style="margin-bottom:6px;" />
-        <input type="number" id="new-member-hours" placeholder="Arbeitsstunden / Woche (optional)" min="0.5" max="80" step="0.5" style="margin-bottom:6px;" />
-        <button id="btn-add-member" class="btn-primary" style="width:100%;">+ Mitglied hinzufügen</button>
+        <div class="form-stack">
+          <input type="text" id="new-member-name" placeholder="Name eingeben…" />
+          <input type="number" id="new-member-hours" placeholder="Arbeitsstunden / Woche (optional)" min="0.5" max="80" step="0.5" />
+          <button id="btn-add-member" class="btn-primary btn-block">+ Mitglied hinzufügen</button>
+        </div>
       </div>
 
       <!-- Member list -->
-      <div class="section-title" style="padding:12px 16px 4px;">Mitglieder</div>
+      <div class="section-title list-heading">Mitglieder</div>
       <div id="member-list" class="scroll-area"></div>
 
     </div><!-- /team-tab -->
@@ -60,11 +62,13 @@
     <div id="route-tab" class="tab-pane active">
 
       <!-- Route list header -->
-      <div class="section" style="padding-bottom:8px;">
+      <div class="section">
         <div class="section-title">Route hinzufügen</div>
-        <input type="text" id="new-route-name" placeholder="Routenname (z.B. Konferenz Wien)…" style="margin-bottom:6px;" />
-        <button id="btn-add-route" class="btn-primary" style="width:100%;margin-bottom:12px;">+ Route hinzufügen</button>
-        <div class="section-title" style="margin-bottom:6px;">Routen</div>
+        <div class="form-stack">
+          <input type="text" id="new-route-name" placeholder="Routenname (z.B. Konferenz Wien)…" />
+          <button id="btn-add-route" class="btn-primary btn-block">+ Route hinzufügen</button>
+        </div>
+        <div class="section-title spaced">Routen</div>
         <div id="route-list"></div>
       </div>
 
@@ -101,12 +105,12 @@
         <div class="section-title">Ort suchen</div>
         <div class="add-form">
           <input type="text" id="search-input" placeholder="Stadt, Flughafen…" />
-          <button id="btn-search" class="btn-primary" style="white-space:nowrap;padding:8px 12px;">→</button>
+          <button id="btn-search" class="btn-primary">→</button>
         </div>
       </div>
 
       <!-- Waypoints -->
-      <div class="section-title" style="padding:10px 16px 4px;">Wegpunkte</div>
+      <div class="section-title list-heading">Wegpunkte</div>
       <div id="waypoint-list" class="scroll-area"></div>
 
     </div><!-- /route-tab -->
@@ -132,7 +136,7 @@
       </div>
       <div class="section">
         <div class="section-title">Hinweis</div>
-        <div class="empty-hint" style="padding:0;margin:0;">Änderungen werden sofort übernommen und bleiben während der Sitzung aktiv.</div>
+        <div class="empty-hint flush">Änderungen werden sofort übernommen und bleiben während der Sitzung aktiv.</div>
       </div>
     </div><!-- /settings-tab -->
 
@@ -167,7 +171,7 @@
 
       <section class="dashboard-card dashboard-budget-card">
         <div class="section-heading">Budget setzen</div>
-        <div class="budget-row compact">
+        <div class="budget-row">
           <div class="budget-input-wrapper">
             <input type="number" id="budget-input" placeholder="z.B. 5000" min="1" />
             <span class="budget-input-suffix">kg</span>
@@ -188,15 +192,17 @@
     </div>
   </aside>
 
-  <!-- ── Topbar (settings) ─────────────────────────────────────────────────── -->
-  <div id="topbar">    <div id="info-card" class="glass topbar-info-card">
+  <!-- ── Topbar (info + map style) ──────────────────────────────────────────── -->
+  <div id="topbar">
+    <div id="info-card" class="glass topbar-info-card">
       <button id="btn-info-toggle" class="icon-btn" title="Info">i</button>
       <div id="info-panel" class="info-panel" aria-hidden="true">
         Die CO₂ Werte sind Schätzwerte, die mit Daten des ClimCalc-Tools berechnet wurden. Tatsächliche Werte sind natürlich von echten Routen und Straßen abhängig.
       </div>
-    </div>    <div id="settings-card" class="glass" style="display:flex;align-items:center;gap:8px;">
-      <span style="font-size:10px;color:var(--text-3);white-space:nowrap;text-transform:uppercase;letter-spacing:.6px;">Karte</span>
-      <select id="style-select" style="flex:1;">
+    </div>
+    <div id="settings-card" class="glass topbar-map-card">
+      <span class="topbar-label">Karte</span>
+      <select id="style-select">
         <option value="https://tiles.openfreemap.org/styles/bright">Bright</option>
         <option value="https://tiles.openfreemap.org/styles/liberty">Liberty</option>
         <option value="https://tiles.openfreemap.org/styles/dark">Dark</option>

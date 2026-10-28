@@ -469,14 +469,7 @@ window.CG.ui = (function () {
       budget > 0 ? `${_formatTons(teamCO2)} / ${_formatTons(budget)}` : _formatTons(teamCO2);
 
     const bar = document.getElementById('team-budget-bar');
-    if (budget > 0) {
-      const pct = Math.min((teamCO2 / budget) * 100, 100);
-      bar.style.width = `${pct}%`;
-      bar.style.background = 'var(--hero-accent)';
-    } else {
-      bar.style.width = '0%';
-      bar.style.background = 'rgba(255,255,255,0.08)';
-    }
+    bar.style.width = budget > 0 ? `${Math.min((teamCO2 / budget) * 100, 100)}%` : '0%';
 
     const gradeBadge = document.getElementById('team-grade-badge');
     const teamGrade  = team.getTeamGrade();
@@ -485,7 +478,7 @@ window.CG.ui = (function () {
       gradeBadge.style.color = teamGrade.color;
     } else {
       gradeBadge.textContent = '—';
-      gradeBadge.style.color = 'var(--text-1)';
+      gradeBadge.style.color = '';
     }
 
     document.getElementById('team-impact-badge').textContent =
@@ -507,8 +500,8 @@ window.CG.ui = (function () {
         return `
           <div class="dash-route">
             <div class="dash-route-header">
-              <span>${icon} ${C.escHtml(r.label)}</span>
-              <div style="display:flex;gap:6px;align-items:center;">
+              <span class="dash-route-title">${icon} ${C.escHtml(r.label)}</span>
+              <div class="dash-route-badges">
                 <span class="impact-chip">${impact.icon}</span>
                 ${showGrade
                   ? `<span class="grade-badge">${gradeInfo.grade}</span>`
@@ -533,7 +526,7 @@ window.CG.ui = (function () {
                 <div class="stat-value">${C.formatTime(s.timeHours)}</div>
               </div>
             </div>
-            <div class="dash-trips" style="margin-top:10px;">${_memberDots(r.assignedMemberIds)}</div>
+            <div class="dash-trips">${_memberDots(r.assignedMemberIds)}</div>
           </div>`;
       }).join('');
     }
@@ -581,7 +574,7 @@ window.CG.ui = (function () {
             ${overBudget ? `<div class="dash-overflow" style="width:${Math.min(usagePct - 100, 100)}%"></div>` : ''}
           </div>
           <div class="dash-bar-label">${label}</div>
-          ${chips ? `<div class="dash-trips">${chips}</div>` : '<div class="empty-hint" style="padding:4px 0;">Keiner Route zugewiesen.</div>'}
+          ${chips ? `<div class="dash-trips">${chips}</div>` : '<div class="empty-hint tight">Keiner Route zugewiesen.</div>'}
         </div>`;
     }).join('');
   }
