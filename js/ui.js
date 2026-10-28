@@ -12,7 +12,9 @@ window.CG.ui = (function () {
   const team  = window.CG.team;
   const cgMap = window.CG.map;
 
-  let _toastTimeout = null;
+  let _toastTimeout    = null;
+  let _currentMode     = 'plane'; // travel mode for the next waypoint (Manuell + map)
+  let _expandedRouteId = null;    // route whose settings card is open
 
   // ── Bootstrap ─────────────────────────────────────────────────────────────
 
@@ -49,26 +51,25 @@ window.CG.ui = (function () {
       if (e.key === 'Enter') _handleSearch();
     });
 
-    // Mode buttons — static, bound once
-    document.querySelectorAll('.mode-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const r = team.getActiveRoute();
-        if (!r) return showToast('Bitte zuerst eine Route auswählen.');
-        team.setRouteMode(r.id, btn.dataset.mode);
-        cgMap.updateRouteLayers(team.getRoute(r.id));
-        renderAll();
-      });
+    // Manual mode buttons — pick the mode for the next waypoint
+    document.querySelectorAll('.mode-grid .mode-btn').forEach(btn => {
+      btn.addEventListener('click', () => setCurrentMode(btn.dataset.mode));
     });
 
-    // Impact factor buttons — static, bound once
-    document.querySelectorAll('.impact-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const r = team.getActiveRoute();
-        if (!r) return showToast('Bitte zuerst eine Route auswählen.');
-        team.setRouteImpact(r.id, btn.dataset.impact);
-        cgMap.updateRouteLayers(team.getRoute(r.id));
-        renderAll();
-      });
+    // Route cards — one delegated handler for the re-rendered list
+    const routeList = document.getElementById('route-list');
+    routeList.addEventListener('click', _handleRouteListClick);
+    routeList.addEventListener('change', _handleRouteListChange);
+    routeList.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && e.target.matches('.js-route-name')) e.target.blur();
+    });
+
+    // Waypoint list — collapsed by default
+    const wpToggle = document.getElementById('btn-toggle-waypoints');
+    wpToggle.addEventListener('click', () => {
+      const list = document.getElementById('waypoint-list');
+      list.hidden = !list.hidden;
+      wpToggle.setAttribute('aria-expanded', String(!list.hidden));
     });
 
     // ── Dashboard tab ─────────────────────────────────────────────────────
@@ -148,15 +149,13 @@ window.CG.ui = (function () {
   function onMapClick(coords) {
     const r = team.getActiveRoute();
     if (!r) return showToast('Bitte zuerst eine Route auswählen oder erstellen.');
-    team.addWaypoint(r.id, coords);
+    team.addWaypoint(r.id, coords, '', _currentMode);
     cgMap.updateRouteLayers(team.getRoute(r.id));
-    renderWaypointList();
-    renderDashboard();
+    renderAll();
   }
 
   function onWaypointDragEnd() {
-    renderWaypointList();
-    renderDashboard();
+    renderAll();
   }
 
   // ── Master render ──────────────────────────────────────────────────────────
@@ -165,9 +164,7 @@ window.CG.ui = (function () {
     renderMemberList();
     renderRouteList();
     renderWaypointList();
-    renderMemberAssignment();
     renderModeSwitcher();
-    renderImpactSwitcher();
     renderDashboard();
   }
 
@@ -263,6 +260,75 @@ window.CG.ui = (function () {
   }
 
   // ── Route list (Route tab) ─────────────────────────────────────────────────
+  // Click a route to select it; click the selected route again to open its
+  // settings card (so a double-click on a new route selects and opens it).
+
+  function _modeIcons(modes) {
+    return modes.map(m => C.CO2_FACTORS[m]?.icon ?? '').join('');
+  }
+
+  function _routeTags(route) {
+    const s           = team.getRouteStats(route);
+    const impact      = C.IMPACT_FACTORS[route.impactFactor];
+    const memberCount = route.assignedMemberIds.length;
+    const tags        = [];
+
+    if (s.modes.length)
+      tags.push(`<span class="tag" title="Verkehrsmittel">${_modeIcons(s.modes)}</span>`);
+    if (route.roundTrip)
+      tags.push(`<span class="tag" title="Hin- und Rückreise">⇄</span>`);
+    tags.push(`<span class="tag" title="Impact: ${impact.label}">${impact.icon}</span>`);
+    tags.push(`<span class="tag" title="${memberCount} Person${memberCount !== 1 ? 'en' : ''}">👤 ${memberCount}</span>`);
+
+    if (s.co2Kg > 0 && memberCount > 0) {
+      const g = team.getRouteGrade(route);
+      tags.push(`<span class="tag tag-grade" style="--grade:${g.color}" title="Note">${g.grade}</span>`);
+    } else {
+      tags.push(`<span class="tag tag-muted" title="Noch keine Note">—</span>`);
+    }
+    return tags.join('');
+  }
+
+  function _routeSettings(route) {
+    const members = team.getMembers();
+    const impactButtons = Object.entries(C.IMPACT_FACTORS).map(([key, f]) => `
+      <button class="impact-btn ${+key === route.impactFactor ? 'active' : ''}"
+              data-action="impact" data-impact="${key}"><span class="mode-icon">${f.icon}</span>${f.label}</button>`).join('');
+
+    const assignRows = members.length
+      ? members.map(m => {
+          const assigned = route.assignedMemberIds.includes(m.id);
+          return `
+            <div class="assign-row ${assigned ? 'assigned' : ''}">
+              <span class="member-dot" style="background:${m.color}"></span>
+              <span class="assign-name">${C.escHtml(m.name)}</span>
+              <button class="assign-btn ${assigned ? 'assigned' : ''}"
+                      data-action="assign" data-member-id="${m.id}"
+                      title="${assigned ? 'Entfernen' : 'Hinzufügen'}">${assigned ? '✓' : '+'}</button>
+            </div>`;
+        }).join('')
+      : `<div class="empty-hint flush">Erst Mitglieder im Team-Tab anlegen.</div>`;
+
+    return `
+      <div class="route-body">
+        <label class="field">
+          <span class="field-label">Name</span>
+          <input type="text" class="js-route-name" value="${C.escHtml(route.label)}" />
+        </label>
+        <label class="switch-row">
+          <span>Hin- und Rückreise</span>
+          <input type="checkbox" class="switch js-roundtrip" ${route.roundTrip ? 'checked' : ''} />
+        </label>
+        <div class="field">
+          <span class="field-label">Impact</span>
+          <div class="impact-row">${impactButtons}</div>
+        </div>
+        <div class="field">
+          <span class="field-label">Mitglieder</span>
+          ${assignRows}
+        </div>
+      </div>`;
+  }
 
   function renderRouteList() {
     const el            = document.getElementById('route-list');
@@ -275,56 +341,73 @@ window.CG.ui = (function () {
     }
 
     el.innerHTML = routes.map(route => {
-      const s         = team.getRouteStats(route);
-      const gradeInfo = team.getRouteGrade(route);
-      const impact    = C.IMPACT_FACTORS[route.impactFactor];
-      const memberCount = route.assignedMemberIds.length;
-      const showGrade = s.co2Kg > 0 && memberCount > 0;
-
+      const active   = route.id === activeRouteId;
+      const expanded = active && route.id === _expandedRouteId;
       return `
-        <div class="route-item ${route.id === activeRouteId ? 'active' : ''}"
+        <div class="route-item ${active ? 'active' : ''} ${expanded ? 'expanded' : ''}"
              data-route-id="${route.id}">
-          <div class="route-header">
-            <span class="route-label js-route-label"
-                  contenteditable="true"
-                  data-route-id="${route.id}">${C.escHtml(route.label)}</span>
-            <button class="icon-btn js-del-route" data-id="${route.id}" title="Löschen">✕</button>
+          <div class="route-head" data-action="toggle">
+            <div class="route-header">
+              <span class="route-label">${C.escHtml(route.label)}</span>
+              <span class="chevron" aria-hidden="true">▸</span>
+              <button class="icon-btn" data-action="delete" title="Löschen">✕</button>
+            </div>
+            <div class="route-tags">${_routeTags(route)}</div>
           </div>
-          <div class="route-summary">
-            <span>${impact.icon} ${impact.label}</span>
-            <span>${memberCount} Person${memberCount !== 1 ? 'en' : ''}</span>
-            ${showGrade
-              ? `<span class="grade-badge">${gradeInfo.grade}</span>`
-              : `<span class="grade-badge grade-pending">—</span>`}
-          </div>
+          ${expanded ? _routeSettings(route) : ''}
         </div>`;
     }).join('');
+  }
 
-    el.querySelectorAll('.route-item').forEach(row => {
-      row.addEventListener('click', e => {
-        if (e.target.closest('.js-del-route') || e.target.classList.contains('js-route-label')) return;
-        team.setActiveRoute(row.dataset.routeId);
-        renderAll();
-      });
-    });
+  function _handleRouteListClick(e) {
+    const item   = e.target.closest('.route-item');
+    const action = e.target.closest('[data-action]')?.dataset.action;
+    if (!item || !action) return;
+    const id = item.dataset.routeId;
 
-    el.querySelectorAll('.js-del-route').forEach(btn => {
-      btn.addEventListener('click', () => {
-        cgMap.removeRouteLayers(btn.dataset.id);
-        team.removeRoute(btn.dataset.id);
-        renderAll();
-      });
-    });
+    switch (action) {
+      case 'toggle':
+        if (team.getActiveRouteId() === id) {
+          _expandedRouteId = _expandedRouteId === id ? null : id;
+        } else {
+          team.setActiveRoute(id);
+          _expandedRouteId = null;
+          cgMap.refreshAllLayers();
+        }
+        break;
+      case 'delete':
+        cgMap.removeRouteLayers(id);
+        team.removeRoute(id);
+        if (_expandedRouteId === id) _expandedRouteId = null;
+        cgMap.refreshAllLayers();
+        break;
+      case 'impact':
+        team.setRouteImpact(id, e.target.closest('[data-impact]').dataset.impact);
+        cgMap.updateRouteLayers(team.getRoute(id));
+        break;
+      case 'assign': {
+        const mid = e.target.closest('[data-member-id]').dataset.memberId;
+        if (team.getRoute(id).assignedMemberIds.includes(mid)) team.unassignMember(id, mid);
+        else                                                   team.assignMember(id, mid);
+        cgMap.updateRouteLayers(team.getRoute(id));
+        break;
+      }
+    }
+    renderAll();
+  }
 
-    el.querySelectorAll('.js-route-label').forEach(label => {
-      label.addEventListener('blur', () => {
-        team.setRouteLabel(label.dataset.routeId, label.textContent.trim());
-        renderAll();
-      });
-      label.addEventListener('keypress', e => {
-        if (e.key === 'Enter') { e.preventDefault(); label.blur(); }
-      });
-    });
+  function _handleRouteListChange(e) {
+    const id = e.target.closest('.route-item')?.dataset.routeId;
+    if (!id) return;
+
+    if (e.target.matches('.js-route-name')) {
+      const label = e.target.value.trim();
+      if (label) team.setRouteLabel(id, label);
+    } else if (e.target.matches('.js-roundtrip')) {
+      team.setRouteRoundTrip(id, e.target.checked);
+      cgMap.updateRouteLayers(team.getRoute(id));
+    }
+    renderAll();
   }
 
   function _memberDots(memberIds) {
@@ -335,55 +418,14 @@ window.CG.ui = (function () {
     }).join('');
   }
 
-  // ── Member assignment panel ────────────────────────────────────────────────
-
-  function renderMemberAssignment() {
-    const el      = document.getElementById('member-assignment');
-    const route   = team.getActiveRoute();
-    const members = team.getMembers();
-
-    if (!route) {
-      el.innerHTML = `<div class="empty-hint">Keine Route ausgewählt.</div>`;
-      return;
-    }
-    if (!members.length) {
-      el.innerHTML = `<div class="empty-hint">Erst Mitglieder im Team-Tab anlegen.</div>`;
-      return;
-    }
-
-    el.innerHTML = members.map(m => {
-      const assigned = route.assignedMemberIds.includes(m.id);
-      return `
-        <div class="assign-row ${assigned ? 'assigned' : ''}" data-member-id="${m.id}">
-          <span class="member-dot" style="background:${m.color}"></span>
-          <span class="assign-name">${C.escHtml(m.name)}</span>
-          <button class="assign-btn ${assigned ? 'assigned' : ''}"
-                  data-member-id="${m.id}"
-                  title="${assigned ? 'Entfernen' : 'Hinzufügen'}">
-            ${assigned ? '✓' : '+'}
-          </button>
-        </div>`;
-    }).join('');
-
-    el.querySelectorAll('.assign-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const r = team.getActiveRoute();
-        if (!r) return;
-        const mid      = btn.dataset.memberId;
-        const assigned = r.assignedMemberIds.includes(mid);
-        if (assigned) team.unassignMember(r.id, mid);
-        else          team.assignMember(r.id, mid);
-        cgMap.updateRouteLayers(team.getRoute(r.id));
-        renderAll();
-      });
-    });
-  }
-
   // ── Waypoint list ──────────────────────────────────────────────────────────
 
   function renderWaypointList() {
     const el    = document.getElementById('waypoint-list');
     const route = team.getActiveRoute();
+
+    document.getElementById('waypoint-count').textContent =
+      route?.waypoints.length ? `(${route.waypoints.length})` : '';
 
     if (!route) {
       el.innerHTML = `<div class="empty-hint">Route auswählen, dann Punkte per Rechtsklick setzen.</div>`;
@@ -397,12 +439,13 @@ window.CG.ui = (function () {
     el.innerHTML = route.waypoints.map((wp, i) => {
       const name  = route.waypointNames[i] || '';
       const label = name || `${wp[0].toFixed(2)}, ${wp[1].toFixed(2)}`;
+      const mode  = i > 0 ? C.CO2_FACTORS[route.waypointModes[i]] : null;
       return `
-        <div class="wp-item" data-fidx="${i}" data-lidx="${i}">
+        <div class="wp-item" data-fidx="${i}">
           <span class="wp-num">${i + 1}</span>
           <div class="wp-info">
             <span class="wp-name">${C.escHtml(label)}</span>
-            <span class="wp-coords">${wp[0].toFixed(4)}, ${wp[1].toFixed(4)}</span>
+            <span class="wp-coords">${mode ? `${mode.icon} ` : 'Start · '}${wp[0].toFixed(4)}, ${wp[1].toFixed(4)}</span>
           </div>
           <button class="icon-btn wp-fly" data-lng="${wp[0]}" data-lat="${wp[1]}" title="Ansehen">⊙</button>
           <button class="icon-btn js-wp-del" data-idx="${i}" title="Entfernen">✕</button>
@@ -430,23 +473,19 @@ window.CG.ui = (function () {
     });
   }
 
-  // ── Mode switcher (static buttons, only class update) ─────────────────────
+  // ── Mode switcher (Manuell) ────────────────────────────────────────────────
 
-  function renderModeSwitcher() {
-    const route   = team.getActiveRoute();
-    const current = route?.mode ?? 'plane';
-    document.querySelectorAll('.mode-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.mode === current);
-    });
+  function setCurrentMode(mode) {
+    if (!C.CO2_FACTORS[mode]) return;
+    _currentMode = mode;
+    renderModeSwitcher();
   }
 
-  // ── Impact switcher (static buttons, only class update) ───────────────────
+  function getCurrentMode() { return _currentMode; }
 
-  function renderImpactSwitcher() {
-    const route   = team.getActiveRoute();
-    const current = route?.impactFactor ?? 2;
-    document.querySelectorAll('.impact-btn').forEach(btn => {
-      btn.classList.toggle('active', +btn.dataset.impact === current);
+  function renderModeSwitcher() {
+    document.querySelectorAll('.mode-grid .mode-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.mode === _currentMode);
     });
   }
 
@@ -494,7 +533,7 @@ window.CG.ui = (function () {
         const gradeInfo   = team.getRouteGrade(r);
         const impact      = C.IMPACT_FACTORS[r.impactFactor];
         const memberCount = r.assignedMemberIds.length;
-        const icon        = C.CO2_FACTORS[r.mode]?.icon ?? '✈️';
+        const icon        = _modeIcons(s.modes) || '📍';
         const showGrade   = s.co2Kg > 0 && memberCount > 0;
 
         return `
@@ -558,7 +597,7 @@ window.CG.ui = (function () {
         .filter(route => route.assignedMemberIds.includes(m.id))
         .map(route => {
           const s    = team.getRouteStats(route);
-          const icon = C.CO2_FACTORS[route.mode]?.icon ?? '✈️';
+          const icon = _modeIcons(s.modes) || '📍';
           return `<span class="dash-trip-chip">${icon} ${C.escHtml(route.label)} · ${C.formatCO2(s.co2Kg)}</span>`;
         }).join('');
 
@@ -595,12 +634,11 @@ window.CG.ui = (function () {
       if (!data.length) return showToast('Ort nicht gefunden.');
       const coords = [parseFloat(data[0].lon), parseFloat(data[0].lat)];
       const name   = data[0].display_name.split(',')[0];
-      team.addWaypoint(r.id, coords, name);
+      team.addWaypoint(r.id, coords, name, _currentMode);
       cgMap.updateRouteLayers(team.getRoute(r.id));
       cgMap.flyTo(coords, 5);
       input.value = '';
-      renderWaypointList();
-      renderDashboard();
+      renderAll();
     } catch (_) {
       showToast('Suchdienst nicht erreichbar.');
     }
@@ -616,5 +654,5 @@ window.CG.ui = (function () {
     _toastTimeout = setTimeout(() => { t.className = 'toast'; }, 3200);
   }
 
-  return { initUI, onMapClick, onWaypointDragEnd, renderAll, showToast };
+  return { initUI, onMapClick, onWaypointDragEnd, renderAll, showToast, setCurrentMode, getCurrentMode };
 })();

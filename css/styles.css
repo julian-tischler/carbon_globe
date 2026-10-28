@@ -458,7 +458,6 @@ button {
   padding: 8px 0;
 }
 
-#route-list,
 #member-list,
 #waypoint-list {
   max-height: 280px;
@@ -477,7 +476,6 @@ button {
 .empty-hint.tight { padding: 4px 0; }
 
 /* Inline-editable labels (contenteditable) */
-.route-label,
 .member-name {
   min-width: 0;
   border-radius: 4px;
@@ -485,7 +483,6 @@ button {
   transition: background var(--transition);
 }
 
-.route-label:focus,
 .member-name:focus {
   background: var(--overlay-3);
   box-shadow: 0 0 0 3px var(--overlay-3);
@@ -493,13 +490,11 @@ button {
 
 /* ── Route list ── */
 .route-item {
-  margin-bottom: 10px;
-  padding: 12px 14px;
+  margin-bottom: 8px;
   background: var(--overlay-1);
   border: 1px solid transparent;
   border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: background var(--transition), border-color var(--transition);
+  transition: background var(--transition), border-color var(--transition), box-shadow var(--transition);
 }
 
 .route-item:last-child { margin-bottom: 0; }
@@ -507,14 +502,19 @@ button {
 
 .route-item.active {
   background: var(--overlay-2);
-  border-color: var(--overlay-4);
+  border-color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.route-head {
+  padding: 10px 12px 10px 14px;
+  cursor: pointer;
 }
 
 .route-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
 }
 
 .route-label {
@@ -525,35 +525,178 @@ button {
   white-space: nowrap;
 }
 
-.route-summary {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 4px 10px;
-  margin-top: 4px;
-  font-size: var(--fs-sm);
-  color: var(--text-2);
+.route-item.active .route-label { font-weight: 700; }
+
+.chevron {
+  flex-shrink: 0;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  transition: transform var(--transition);
 }
 
-/* ── Mode / impact segmented buttons ── */
-.mode-row,
-.impact-row {
+.route-item:not(.active) .chevron { visibility: hidden; }
+.route-item.expanded .chevron,
+.list-toggle[aria-expanded="true"] .chevron { transform: rotate(90deg); }
+
+/* ── Tags (route summary) ── */
+.route-tags {
   display: flex;
   flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 7px;
+  justify-content: center;
+  background: var(--overlay-2);
+  border: 1px solid var(--overlay-3);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+.tag-grade {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--grade);
+  border-color: var(--grade);
+}
+
+.tag-muted { opacity: 0.7; }
+
+/* ── Route settings card (expanded) ── */
+.route-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 14px 14px;
+  border-top: 1px solid var(--border);
+  cursor: default;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: var(--fs-base);
+  cursor: pointer;
+}
+
+.switch {
+  appearance: none;
+  position: relative;
+  flex-shrink: 0;
+  width: 34px;
+  height: 20px;
+  background: var(--surface-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  background: var(--text-2);
+  border-radius: 50%;
+  transition: transform var(--transition), background var(--transition);
+}
+
+.switch:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.switch:checked::after {
+  background: var(--on-accent);
+  transform: translateX(14px);
+}
+
+/* ── Mode / impact buttons ── */
+.mode-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.impact-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 5px;
 }
 
 .mode-btn,
 .impact-btn {
-  flex: 1;
-  min-width: 60px;
-  padding: 7px 6px;
+  min-width: 0;
+  padding: 7px 4px;
   background: var(--surface-2);
   color: var(--text-2);
   border: 1px solid transparent;
   font-size: var(--fs-sm);
   text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+
+.mode-btn,
+.impact-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--fs-xs);
+}
+
+.mode-icon { font-size: var(--fs-lg); line-height: 1.2; }
+
+/* ── Collapsible list header ── */
+.list-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  width: 100%;
+  padding: 12px 16px;
+  background: none;
+  border-radius: 0;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.route-body .assign-row { margin-bottom: 0; padding: 6px 6px 6px 10px; }
+.route-body .assign-btn { height: 28px; min-width: 32px; padding: 0 8px; }
+
+.list-toggle:hover { background: var(--overlay-1); }
+.list-toggle .section-title { margin-bottom: 0; }
 
 .mode-btn:hover,
 .impact-btn:hover {

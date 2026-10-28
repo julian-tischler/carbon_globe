@@ -72,46 +72,28 @@
         <div id="route-list"></div>
       </div>
 
-      <!-- Travel mode -->
+      <!-- Manual entry: look up a place and add it with the chosen travel mode -->
       <div class="section">
-        <div class="section-title">Verkehrsmittel</div>
-        <div class="mode-row">
-          <button class="mode-btn" data-mode="plane">✈️ Flug</button>
-          <button class="mode-btn" data-mode="train">🚆 Bahn</button>
-          <button class="mode-btn" data-mode="car">🚗 Pkw</button>
-          <button class="mode-btn" data-mode="ecar">⚡ E-Pkw</button>
-          <button class="mode-btn" data-mode="bus">🚌 Bus</button>
+        <div class="section-title">Manuell</div>
+        <div class="mode-grid">
+          <button class="mode-btn" data-mode="plane" title="Flug"><span class="mode-icon">✈️</span>Flug</button>
+          <button class="mode-btn" data-mode="train" title="Bahn"><span class="mode-icon">🚆</span>Bahn</button>
+          <button class="mode-btn" data-mode="car"   title="Pkw"><span class="mode-icon">🚗</span>Pkw</button>
+          <button class="mode-btn" data-mode="ecar"  title="E-Pkw"><span class="mode-icon">⚡</span>E-Pkw</button>
+          <button class="mode-btn" data-mode="bus"   title="Fernbus"><span class="mode-icon">🚌</span>Bus</button>
         </div>
-      </div>
-
-      <!-- Impact Factor -->
-      <div class="section">
-        <div class="section-title">Impact Factor</div>
-        <div class="impact-row">
-          <button class="impact-btn" data-impact="1">🔴 Niedrig</button>
-          <button class="impact-btn" data-impact="2">🟡 Mittel</button>
-          <button class="impact-btn" data-impact="3">🟢 Hoch</button>
-        </div>
-      </div>
-
-      <!-- Member assignment -->
-      <div class="section">
-        <div class="section-title">Mitglieder zuweisen</div>
-        <div id="member-assignment"></div>
-      </div>
-
-      <!-- Search -->
-      <div class="section">
-        <div class="section-title">Ort suchen</div>
         <div class="add-form">
           <input type="text" id="search-input" placeholder="Stadt, Flughafen…" />
-          <button id="btn-search" class="btn-primary">→</button>
+          <button id="btn-search" class="btn-primary" title="Als Wegpunkt hinzufügen">→</button>
         </div>
       </div>
 
-      <!-- Waypoints -->
-      <div class="section-title list-heading">Wegpunkte</div>
-      <div id="waypoint-list" class="scroll-area"></div>
+      <!-- Waypoints (collapsed by default) -->
+      <button id="btn-toggle-waypoints" class="list-toggle" aria-expanded="false">
+        <span class="section-title">Wegpunkte <span id="waypoint-count"></span></span>
+        <span class="chevron">▸</span>
+      </button>
+      <div id="waypoint-list" class="scroll-area" hidden></div>
 
     </div><!-- /route-tab -->
 

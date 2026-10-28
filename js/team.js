@@ -92,11 +92,12 @@ window.CG.team = (function () {
     _routes.set(id, {
       id,
       label:             label || `Route ${_routes.size + 1}`,
-      mode:              'plane',
-      waypoints:         [],   // [[lng, lat], …]
-      waypointNames:     [],   // string[]
-      impactFactor:      2,    // 1 | 2 | 3
-      assignedMemberIds: [],   // string[]
+      waypoints:         [],    // [[lng, lat], …]
+      waypointNames:     [],    // string[]
+      waypointModes:     [],    // mode of the leg arriving at waypoint i (index 0 unused)
+      roundTrip:         false, // true → every leg is travelled back in reverse
+      impactFactor:      2,     // 1 | 2 | 3
+      assignedMemberIds: [],    // string[]
     });
     return id;
   }
@@ -119,9 +120,9 @@ window.CG.team = (function () {
     if (r) r.label = label;
   }
 
-  function setRouteMode(id, mode) {
+  function setRouteRoundTrip(id, roundTrip) {
     const r = _routes.get(id);
-    if (r) r.mode = mode;
+    if (r) r.roundTrip = !!roundTrip;
   }
 
   function setRouteImpact(id, factor) {
@@ -145,18 +146,28 @@ window.CG.team = (function () {
 
   // ── Waypoints ─────────────────────────────────────────────────────────────
 
-  function addWaypoint(routeId, coords, name) {
+  /** `mode` is the travel mode of the leg from the previous waypoint to this one. */
+  function addWaypoint(routeId, coords, name, mode = 'plane') {
     const r = _routes.get(routeId);
     if (!r) return;
     r.waypoints.push([coords[0], coords[1]]);
     r.waypointNames.push(name || '');
+    r.waypointModes.push(mode);
   }
 
+  /** Removing a middle waypoint joins its neighbours using the following leg's mode. */
   function removeWaypoint(routeId, index) {
     const r = _routes.get(routeId);
     if (!r) return;
     r.waypoints.splice(index, 1);
     r.waypointNames.splice(index, 1);
+    r.waypointModes.splice(index, 1);
+  }
+
+  function setWaypointMode(routeId, index, mode) {
+    const r = _routes.get(routeId);
+    if (!r || index <= 0 || index >= r.waypoints.length) return;
+    r.waypointModes[index] = mode;
   }
 
   function moveWaypoint(routeId, index, newCoords) {
@@ -168,17 +179,31 @@ window.CG.team = (function () {
 
   // ── Statistics ────────────────────────────────────────────────────────────
 
-  /** Stats for one route (single-person CO₂). */
+  /** Outbound legs of a route; leg i runs from waypoint i to waypoint i + 1. */
+  function getRouteLegs(route) {
+    const wp   = route.waypoints;
+    const legs = [];
+    for (let i = 0; i < wp.length - 1; i++) {
+      const mode       = route.waypointModes[i + 1] || 'plane';
+      const distanceKm = turf.distance(wp[i], wp[i + 1]);
+      legs.push({
+        from: wp[i], to: wp[i + 1], toIndex: i + 1, mode, distanceKm,
+        co2Kg:     C.calcCO2(distanceKm, mode),
+        timeHours: C.calcTravelTime(distanceKm, mode),
+      });
+    }
+    return legs;
+  }
+
+  /** Stats for one route (single-person CO₂), including the return trip if enabled. */
   function getRouteStats(route) {
-    const wp = route.waypoints;
-    if (wp.length < 2) return { distanceKm: 0, co2Kg: 0, timeHours: 0 };
-    let dist = 0;
-    for (let i = 0; i < wp.length - 1; i++)
-      dist += turf.distance(wp[i], wp[i + 1]);
+    const legs = getRouteLegs(route);
+    const k    = route.roundTrip ? 2 : 1;
     return {
-      distanceKm: dist,
-      co2Kg:      C.calcCO2(dist, route.mode),
-      timeHours:  C.calcTravelTime(dist, route.mode),
+      distanceKm: k * legs.reduce((sum, l) => sum + l.distanceKm, 0),
+      co2Kg:      k * legs.reduce((sum, l) => sum + l.co2Kg, 0),
+      timeHours:  k * legs.reduce((sum, l) => sum + l.timeHours, 0),
+      modes:      [...new Set(legs.map(l => l.mode))],
     };
   }
 
@@ -239,6 +264,13 @@ window.CG.team = (function () {
     return { grade: entry.grade, color: entry.color, score: avgScore };
   }
 
+  /** Members assigned to at least one route. */
+  function getTravellingMemberCount() {
+    const ids = new Set();
+    for (const r of _routes.values()) r.assignedMemberIds.forEach(id => ids.add(id));
+    return [...ids].filter(id => _members.has(id)).length;
+  }
+
   function setTeamBudget(kg) { _teamBudget = kg; }
   function getTeamBudget()   { return _teamBudget; }
 
@@ -252,13 +284,14 @@ window.CG.team = (function () {
     // Routes
     addRoute, removeRoute, getRoutes, getRoute,
     setActiveRoute, getActiveRoute, getActiveRouteId,
-    setRouteLabel, setRouteMode, setRouteImpact,
+    setRouteLabel, setRouteRoundTrip, setRouteImpact,
     // Assignment
     assignMember, unassignMember,
     // Waypoints
-    addWaypoint, removeWaypoint, moveWaypoint,
+    addWaypoint, removeWaypoint, moveWaypoint, setWaypointMode,
     // Stats
-    getRouteStats, getRouteGrade, getMemberCO2, getTeamCO2, getTeamGrade, getTeamImpact,
+    getRouteLegs, getRouteStats, getRouteGrade, getMemberCO2, getTeamCO2, getTeamGrade, getTeamImpact,
+    getTravellingMemberCount,
     // Budget
     setTeamBudget, getTeamBudget,
   };
