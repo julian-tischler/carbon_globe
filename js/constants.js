@@ -8,11 +8,11 @@ window.CG = window.CG || {};
 window.CG.constants = (function () {
 
   const CO2_FACTORS = {
-    plane: { label: 'Flugzeug', icon: '✈️',  co2PerKm: null, speedKmh: 800 },
-    train: { label: 'Bahn',     icon: '🚆',  co2PerKm: 9,   speedKmh: 120 },
-    car:   { label: 'Pkw',      icon: '🚗',  co2PerKm: 226, speedKmh: 90  },
-    ecar:  { label: 'E-Pkw',    icon: '⚡',  co2PerKm: 106, speedKmh: 90  },
-    bus:   { label: 'Fernbus',  icon: '🚌',  co2PerKm: 49,  speedKmh: 80  },
+    plane: { label: 'Flugzeug', short: 'Flug',  icon: '✈️',  co2PerKm: null, speedKmh: 800 },
+    train: { label: 'Bahn',     short: 'Bahn',  icon: '🚆',  co2PerKm: 9,   speedKmh: 120 },
+    car:   { label: 'Pkw',      short: 'Pkw',   icon: '🚗',  co2PerKm: 226, speedKmh: 90  },
+    ecar:  { label: 'E-Pkw',    short: 'E-Pkw', icon: '⚡',  co2PerKm: 106, speedKmh: 90  },
+    bus:   { label: 'Fernbus',  short: 'Bus',   icon: '🚌',  co2PerKm: 49,  speedKmh: 80  },
   };
 
   const MEMBER_COLORS = [

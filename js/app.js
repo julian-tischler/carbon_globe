@@ -5,11 +5,11 @@
 (function () {
   const { map: cgMap, ui: cgUI, team } = window.CG;
 
-  cgMap.initMap(
-    'map',
-    coords => cgUI.onMapClick(coords),
-    ()     => cgUI.onWaypointDragEnd()
-  );
+  cgMap.initMap('map', {
+    onRightClick:    coords          => cgUI.onMapRightClick(coords),
+    onWaypointMove:  ()              => cgUI.onWaypointDragEnd(),
+    onWaypointClick: (routeId, idx)  => cgUI.onWaypointClick(routeId, idx),
+  });
 
   cgUI.initUI();
 

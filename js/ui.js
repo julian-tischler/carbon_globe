@@ -52,7 +52,7 @@ window.CG.ui = (function () {
     });
 
     // Manual mode buttons — pick the mode for the next waypoint
-    document.querySelectorAll('.mode-grid .mode-btn').forEach(btn => {
+    document.querySelectorAll('#manual-modes .mode-btn').forEach(btn => {
       btn.addEventListener('click', () => setCurrentMode(btn.dataset.mode));
     });
 
@@ -140,18 +140,90 @@ window.CG.ui = (function () {
     renderAll();
   }
 
-  // ── Map callbacks ──────────────────────────────────────────────────────────
   function _adjustFontSize(delta) {
     const current = parseFloat(getComputedStyle(document.documentElement).fontSize.replace('px', '')) || 13;
     const next    = Math.min(18, Math.max(11, current + delta));
     document.documentElement.style.fontSize = `${next}px`;
   }
-  function onMapClick(coords) {
+
+  // ── Map callbacks & popups ─────────────────────────────────────────────────
+
+  function _modeButtons(activeMode) {
+    return Object.entries(C.CO2_FACTORS).map(([mode, f]) => `
+      <button class="mode-btn ${mode === activeMode ? 'active' : ''}" data-mode="${mode}" title="${f.label}">
+        <span class="mode-icon">${f.icon}</span>${f.short}
+      </button>`).join('');
+  }
+
+  function _addWaypoint(routeId, coords, name, mode) {
+    team.addWaypoint(routeId, coords, name, mode);
+    cgMap.updateRouteLayers(team.getRoute(routeId));
+    renderAll();
+  }
+
+  /** Right-click: choose how to travel to the clicked spot (or set the start). */
+  function onMapRightClick(coords) {
     const r = team.getActiveRoute();
     if (!r) return showToast('Bitte zuerst eine Route auswählen oder erstellen.');
-    team.addWaypoint(r.id, coords, '', _currentMode);
-    cgMap.updateRouteLayers(team.getRoute(r.id));
-    renderAll();
+
+    const el = document.createElement('div');
+    el.className = 'map-popup';
+    el.innerHTML = r.waypoints.length
+      ? `<div class="popup-title">Weiter nach hier mit</div>
+         <div class="mode-grid">${_modeButtons(_currentMode)}</div>`
+      : `<div class="popup-title">Neue Route „${C.escHtml(r.label)}“</div>
+         <button class="btn-primary btn-block" data-start>📍 Start hier setzen</button>`;
+
+    el.addEventListener('click', e => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      const mode = btn.dataset.mode ?? _currentMode;
+      if (btn.dataset.mode) setCurrentMode(mode);
+      _addWaypoint(r.id, coords, '', mode);
+      cgMap.closePopup();
+    });
+
+    cgMap.openPopup(coords, el);
+  }
+
+  /** Left-click on a waypoint: change the mode of the leg arriving there, or delete it. */
+  function onWaypointClick(routeId, idx) {
+    if (team.getActiveRouteId() !== routeId) {
+      team.setActiveRoute(routeId);
+      _expandedRouteId = null;
+      cgMap.refreshAllLayers();
+      renderAll();
+    }
+
+    const r      = team.getRoute(routeId);
+    const coords = r.waypoints[idx];
+    const name   = r.waypointNames[idx] || `${coords[1].toFixed(2)}, ${coords[0].toFixed(2)}`;
+
+    const el = document.createElement('div');
+    el.className = 'map-popup';
+    el.innerHTML = `
+      <div class="popup-title">${idx + 1}. ${C.escHtml(name)}</div>
+      ${idx > 0
+        ? `<div class="field-label">Anreise mit</div>
+           <div class="mode-grid">${_modeButtons(r.waypointModes[idx])}</div>`
+        : `<div class="popup-sub">Startpunkt</div>`}
+      <button class="btn-danger btn-block" data-delete>Wegpunkt löschen</button>`;
+
+    el.addEventListener('click', e => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      if (btn.dataset.delete !== undefined) {
+        team.removeWaypoint(routeId, idx);
+        cgMap.closePopup();
+      } else if (btn.dataset.mode) {
+        team.setWaypointMode(routeId, idx, btn.dataset.mode);
+        el.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b === btn));
+      }
+      cgMap.updateRouteLayers(team.getRoute(routeId));
+      renderAll();
+    });
+
+    cgMap.openPopup(coords, el);
   }
 
   function onWaypointDragEnd() {
@@ -376,6 +448,7 @@ window.CG.ui = (function () {
         }
         break;
       case 'delete':
+        cgMap.closePopup();
         cgMap.removeRouteLayers(id);
         team.removeRoute(id);
         if (_expandedRouteId === id) _expandedRouteId = null;
@@ -467,6 +540,7 @@ window.CG.ui = (function () {
         const r = team.getActiveRoute();
         if (!r) return;
         team.removeWaypoint(r.id, +btn.dataset.idx);
+        cgMap.closePopup();
         cgMap.updateRouteLayers(team.getRoute(r.id));
         renderAll();
       });
@@ -484,7 +558,7 @@ window.CG.ui = (function () {
   function getCurrentMode() { return _currentMode; }
 
   function renderModeSwitcher() {
-    document.querySelectorAll('.mode-grid .mode-btn').forEach(btn => {
+    document.querySelectorAll('#manual-modes .mode-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.mode === _currentMode);
     });
   }
@@ -654,5 +728,8 @@ window.CG.ui = (function () {
     _toastTimeout = setTimeout(() => { t.className = 'toast'; }, 3200);
   }
 
-  return { initUI, onMapClick, onWaypointDragEnd, renderAll, showToast, setCurrentMode, getCurrentMode };
+  return {
+    initUI, renderAll, showToast, setCurrentMode, getCurrentMode,
+    onMapRightClick, onWaypointClick, onWaypointDragEnd,
+  };
 })();

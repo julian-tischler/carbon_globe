@@ -174,6 +174,17 @@ button {
 
 .btn-secondary:hover { color: var(--text-1); border-color: var(--border-strong); }
 
+.btn-danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border: 1px solid transparent;
+  border-radius: 14px;
+  padding: 8px 14px;
+  font-weight: 600;
+}
+
+.btn-danger:hover { border-color: var(--danger); }
+
 .btn-block { width: 100%; }
 
 .icon-btn {
@@ -338,6 +349,56 @@ button {
   opacity: 1;
   max-height: 220px;
   pointer-events: auto;
+}
+
+/* ─── Map popups (right-click / waypoint) ───────────────────────────────────── */
+.cg-popup .maplibregl-popup-content {
+  padding: 12px;
+  background: var(--panel-bg-raised);
+  backdrop-filter: var(--panel-blur);
+  color: var(--text-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  font-family: var(--font-ui);
+}
+
+.cg-popup .maplibregl-popup-tip { display: none; }
+
+.cg-popup .maplibregl-popup-close-button {
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  color: var(--text-3);
+  font-size: var(--fs-lg);
+  line-height: 1;
+}
+
+.cg-popup .maplibregl-popup-close-button:hover {
+  background: var(--overlay-3);
+  color: var(--text-1);
+}
+
+.map-popup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 250px;
+}
+
+.map-popup .mode-grid { margin-bottom: 0; }
+
+.popup-title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.popup-sub {
+  font-size: var(--fs-sm);
+  color: var(--text-3);
 }
 
 /* ─── Sidebar ───────────────────────────────────────────────────────────────── */
