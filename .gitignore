@@ -1,0 +1,23 @@
+# Local Claude Code config (preview server, personal settings)
+.claude/launch.json
+.claude/settings.local.json
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*~
+
+# Local environment / secrets
+.env
+.env.*
+
+# Tooling output, in case a build step or dev dependencies are added later
+node_modules/
+__pycache__/
+*.log
