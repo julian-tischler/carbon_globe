@@ -231,18 +231,16 @@ button {
 
 #dashboard-panel {
   position: absolute;
-  top: var(--edge); right: var(--edge); bottom: var(--edge);
+  top: 0; right: 0; bottom: 0;
   width: var(--dash-w);
   z-index: 10;
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: 20px;
+  min-height: 0;
   overflow: hidden;
-  background: var(--panel-bg-raised);
+  background: var(--panel-bg);
   backdrop-filter: var(--panel-blur);
-  border: 1px solid var(--border);
-  border-radius: 20px;
+  border-left: 1px solid var(--border);
   box-shadow: var(--shadow-panel);
 }
 
@@ -250,7 +248,7 @@ button {
   position: absolute;
   top: var(--edge);
   left: calc(var(--sidebar-w) + var(--edge));
-  right: calc(var(--dash-w) + 2 * var(--edge));
+  right: calc(var(--dash-w) + var(--edge));
   z-index: 10;
   display: flex;
   gap: 10px;
@@ -264,9 +262,9 @@ button {
 #instructions {
   position: absolute;
   bottom: 24px;
-  left: calc(var(--sidebar-w) + (100% - var(--sidebar-w) - var(--dash-w) - 2 * var(--edge)) / 2);
+  left: calc(var(--sidebar-w) + (100% - var(--sidebar-w) - var(--dash-w)) / 2);
   transform: translateX(-50%);
-  max-width: calc(100% - var(--sidebar-w) - var(--dash-w) - 4 * var(--edge));
+  max-width: calc(100% - var(--sidebar-w) - var(--dash-w) - 2 * var(--edge));
   z-index: 10;
   padding: 7px 20px;
   background: var(--hint-bg);
@@ -961,48 +959,37 @@ input[type="number"].member-hours {
 }
 
 /* ─── Dashboard ─────────────────────────────────────────────────────────────── */
-.dashboard-panel-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+.dash-pane {
   gap: 16px;
-  padding: 0 6px 8px 0;
-  overflow-y: auto;
+  padding: 16px;
 }
 
 .dashboard-card {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 18px;
+  padding: 16px;
   background: var(--overlay-1);
   border: 1px solid var(--overlay-2);
   border-radius: var(--radius-lg);
 }
 
 .section-heading {
-  margin-bottom: 6px;
   font-size: var(--fs-sm);
   letter-spacing: 0.7px;
   text-transform: uppercase;
   color: var(--text-3);
 }
 
-/* ── Hero (totals) ── */
+/* ── Gesamt: hero + stat tiles ── */
 .dashboard-hero-card {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 22px;
+  gap: 10px;
+  padding: 20px;
   background: var(--overlay-3);
   border: 1px solid var(--overlay-4);
-  border-radius: 22px;
-}
-
-.hero-top {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  border-radius: var(--radius-lg);
 }
 
 .hero-label {
@@ -1020,13 +1007,16 @@ input[type="number"].member-hours {
   color: var(--accent);
 }
 
-.hero-grade-value { color: var(--text-1); }
-
-.hero-progress { margin-top: 4px; }
+.hero-sub {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
 
 .hero-progress-track {
   width: 100%;
   height: 10px;
+  margin-top: 4px;
   background: var(--overlay-3);
   border-radius: var(--radius-pill);
   overflow: hidden;
@@ -1038,6 +1028,31 @@ input[type="number"].member-hours {
   background: var(--accent);
   border-radius: var(--radius-pill);
   transition: width 0.4s ease;
+}
+
+.hero-progress-fill.over-budget { background: var(--danger); }
+
+.stat-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.stat-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  background: var(--overlay-1);
+  border: 1px solid var(--overlay-2);
+  border-radius: var(--radius-md);
+}
+
+.stat-tile-value {
+  font-family: var(--font-mono);
+  font-size: 1.85rem;
+  font-weight: 700;
+  line-height: 1.1;
 }
 
 /* ── Budget ── */
@@ -1075,7 +1090,8 @@ input[type="number"].member-hours {
   gap: 12px;
 }
 
-.dash-route {
+.dash-route,
+.dash-member {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1085,41 +1101,16 @@ input[type="number"].member-hours {
   border-radius: 16px;
 }
 
-.dash-route-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
 .dash-route-title {
-  min-width: 0;
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.dash-route-badges {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.impact-chip,
-.grade-badge {
-  padding: 4px 8px;
-  background: var(--overlay-2);
-  border: 1px solid var(--overlay-3);
-  border-radius: var(--radius-pill);
-  font-size: var(--fs-xs);
-  color: var(--text-2);
-}
-
-.grade-badge.grade-pending { opacity: 0.7; }
-
 .stat-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -1141,6 +1132,8 @@ input[type="number"].member-hours {
   font-size: var(--fs-md);
   white-space: nowrap;
 }
+
+.dash-member { gap: 6px; }
 
 .dash-member-header {
   display: flex;
@@ -1277,8 +1270,6 @@ input[type="number"].member-hours {
     left: 12px; right: 12px; bottom: 12px;
     width: auto;
   }
-
-  .dashboard-panel-body { padding-right: 10px; }
 
   #topbar {
     position: fixed;

@@ -115,13 +115,12 @@ window.CG.ui = (function () {
       infoPanel.setAttribute('aria-hidden', 'true');
     });
 
-    // ── Tabs ──────────────────────────────────────────────────────────────
+    // ── Tabs (sidebar and dashboard each switch independently) ────────────
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-        btn.classList.add('active');
-        document.getElementById(btn.dataset.tab).classList.add('active');
+        const panel = btn.closest('#sidebar, #dashboard-panel');
+        panel.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+        panel.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('active', p.id === btn.dataset.tab));
       });
     });
   }
@@ -257,7 +256,7 @@ window.CG.ui = (function () {
       return `
         <div class="member-item ${m.id === active?.id ? 'active' : ''}"
              data-id="${m.id}">
-          <div class="member-dot"></div>
+          <div class="member-dot" style="background:${m.color}"></div>
           <div class="member-info">
             <span class="member-name js-member-name" contenteditable="true" data-id="${m.id}">${C.escHtml(m.name)}</span>
             <label class="member-hours-wrapper">
@@ -487,7 +486,7 @@ window.CG.ui = (function () {
     return memberIds.map(id => {
       const m = team.getMember(id);
       if (!m) return '';
-      return `<span class="member-dot-sm" title="${C.escHtml(m.name)}"></span>`;
+      return `<span class="dash-trip-chip"><span class="member-dot-sm" style="background:${m.color}"></span>${C.escHtml(m.name)}</span>`;
     }).join('');
   }
 
@@ -565,61 +564,46 @@ window.CG.ui = (function () {
 
   // ── Dashboard ──────────────────────────────────────────────────────────────
 
-  /** Formats kg as tons without trailing ".0", e.g. 5000 -> "5t", 5400 -> "5.4t" */
-  function _formatTons(kg) {
-    const tons = kg / 1000;
-    const rounded = Math.round(tons * 10) / 10;
-    return `${rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(1)}t`;
-  }
-
   function renderDashboard() {
     const members = team.getMembers();
     const routes  = team.getRoutes();
     const teamCO2 = team.getTeamCO2();
     const budget  = team.getTeamBudget();
 
-    document.getElementById('team-co2-total').textContent =
-      budget > 0 ? `${_formatTons(teamCO2)} / ${_formatTons(budget)}` : _formatTons(teamCO2);
+    // ── Gesamt ──
+    const usage = budget > 0 ? (teamCO2 / budget) * 100 : 0;
+    document.getElementById('team-co2-total').textContent = C.formatCO2(teamCO2);
+    document.getElementById('team-budget-label').textContent = budget > 0
+      ? `${Math.round(usage)} % von ${C.formatCO2(budget)} Budget`
+      : 'Kein Budget gesetzt';
 
     const bar = document.getElementById('team-budget-bar');
-    bar.style.width = budget > 0 ? `${Math.min((teamCO2 / budget) * 100, 100)}%` : '0%';
+    bar.style.width = `${Math.min(usage, 100)}%`;
+    bar.classList.toggle('over-budget', usage > 100);
 
     const gradeBadge = document.getElementById('team-grade-badge');
     const teamGrade  = team.getTeamGrade();
-    if (teamGrade) {
-      gradeBadge.textContent = teamGrade.grade;
-      gradeBadge.style.color = teamGrade.color;
-    } else {
-      gradeBadge.textContent = '—';
-      gradeBadge.style.color = '';
-    }
+    gradeBadge.textContent = teamGrade ? teamGrade.grade : '—';
+    gradeBadge.style.color = teamGrade ? teamGrade.color : '';
 
     document.getElementById('team-impact-badge').textContent =
       Math.round(team.getTeamImpact()).toLocaleString('de');
+    document.getElementById('team-route-count').textContent = routes.length;
+    document.getElementById('team-traveller-count').textContent =
+      `${team.getTravellingMemberCount()} / ${members.length}`;
 
-    // Route breakdown
+    // ── Routen ──
     const routeContainer = document.getElementById('dashboard-routes');
     if (!routes.length) {
       routeContainer.innerHTML = `<div class="empty-hint">Noch keine Routen.</div>`;
     } else {
       routeContainer.innerHTML = routes.map(r => {
-        const s           = team.getRouteStats(r);
-        const gradeInfo   = team.getRouteGrade(r);
-        const impact      = C.IMPACT_FACTORS[r.impactFactor];
-        const memberCount = r.assignedMemberIds.length;
-        const icon        = _modeIcons(s.modes) || '📍';
-        const showGrade   = s.co2Kg > 0 && memberCount > 0;
-
+        const s = team.getRouteStats(r);
         return `
           <div class="dash-route">
-            <div class="dash-route-header">
-              <span class="dash-route-title">${icon} ${C.escHtml(r.label)}</span>
-              <div class="dash-route-badges">
-                <span class="impact-chip">${impact.icon}</span>
-                ${showGrade
-                  ? `<span class="grade-badge">${gradeInfo.grade}</span>`
-                  : `<span class="grade-badge grade-pending">—</span>`}
-              </div>
+            <div>
+              <div class="dash-route-title">${C.escHtml(r.label)}</div>
+              <div class="route-tags">${_routeTags(r)}</div>
             </div>
             <div class="stat-row">
               <div class="stat-cell">
@@ -628,29 +612,29 @@ window.CG.ui = (function () {
               </div>
               <div class="stat-cell">
                 <div class="stat-label">CO₂ / Person</div>
-                <div class="stat-value co2">${C.formatCO2(s.co2Kg)}</div>
+                <div class="stat-value">${C.formatCO2(s.co2Kg)}</div>
               </div>
               <div class="stat-cell">
-                <div class="stat-label">Personen</div>
-                <div class="stat-value">${memberCount}</div>
+                <div class="stat-label">CO₂ gesamt</div>
+                <div class="stat-value">${C.formatCO2(s.co2Kg * r.assignedMemberIds.length)}</div>
               </div>
               <div class="stat-cell">
                 <div class="stat-label">Reisezeit</div>
                 <div class="stat-value">${C.formatTime(s.timeHours)}</div>
               </div>
             </div>
-            <div class="dash-trips">${_memberDots(r.assignedMemberIds)}</div>
+            ${r.assignedMemberIds.length ? `<div class="dash-trips">${_memberDots(r.assignedMemberIds)}</div>` : ''}
           </div>`;
       }).join('');
     }
 
+    // ── Team ──
     const memberContainer = document.getElementById('dashboard-members');
     if (!members.length) {
       memberContainer.innerHTML = `<div class="empty-hint">Noch keine Mitglieder.</div>`;
       return;
     }
 
-    const totalHours = members.reduce((sum, m) => sum + (m.workingHours || 1), 0) || 1;
     const totalFTE   = members.reduce((sum, m) => sum + ((m.workingHours || 1) / 40), 0) || 1;
     const maxCO2     = Math.max(...members.map(m => team.getMemberCO2(m.id)), 0.001);
 
@@ -678,7 +662,7 @@ window.CG.ui = (function () {
       return `
         <div class="dash-member">
           <div class="dash-member-header">
-            <span class="member-dot"></span>
+            <span class="member-dot" style="background:${m.color}"></span>
             <span class="dash-name">${C.escHtml(m.name)}</span>
             <span class="dash-co2">${C.formatCO2(co2)}${budget > 0 ? ` · ${C.formatCO2(budgetAlloc)} Budget` : ''}</span>
           </div>

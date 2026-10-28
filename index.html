@@ -125,33 +125,45 @@
   </aside><!-- /sidebar -->
 
   <!-- ── Dashboard panel ───────────────────────────────────────────────── -->
-  <aside id="dashboard-panel" class="glass">
-    <div class="dashboard-panel-header">
-      <div class="section-title">Dashboard</div>
+  <aside id="dashboard-panel">
+
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="dash-overview">Gesamt</button>
+      <button class="tab-btn" data-tab="dash-routes">Routen</button>
+      <button class="tab-btn" data-tab="dash-team">Team</button>
     </div>
 
-    <div class="dashboard-panel-body">
+    <!-- ── TAB: Gesamt-Übersicht ──────────────────────────────────────── -->
+    <div id="dash-overview" class="tab-pane dash-pane active">
       <section class="dashboard-hero-card">
-        <div class="hero-top">
-          <div class="hero-label">Gesamte CO2 Emissionen</div>
-          <div class="hero-total" id="team-co2-total">0t / 10t</div>
-          <div class="hero-progress" aria-label="Budget Progress">
-            <div class="hero-progress-track">
-              <div class="hero-progress-fill" id="team-budget-bar"></div>
-            </div>
-          </div>
+        <div class="hero-label">Gesamte CO₂-Emissionen</div>
+        <div class="hero-total" id="team-co2-total">0 kg</div>
+        <div class="hero-progress-track" aria-label="Budget-Auslastung">
+          <div class="hero-progress-fill" id="team-budget-bar"></div>
         </div>
-        <div class="hero-top">
-          <div class="hero-label">Gesamtnote</div>
-          <div class="hero-total hero-grade-value" id="team-grade-badge">—</div>
-        </div>
-        <div class="hero-top">
-          <div class="hero-label">Gesamter Impact</div>
-          <div class="hero-total" id="team-impact-badge">0</div>
-        </div>
+        <div class="hero-sub" id="team-budget-label"></div>
       </section>
 
-      <section class="dashboard-card dashboard-budget-card">
+      <div class="stat-tiles">
+        <div class="stat-tile">
+          <div class="stat-label">Gesamtnote</div>
+          <div class="stat-tile-value" id="team-grade-badge">—</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-label">Gesamtimpact</div>
+          <div class="stat-tile-value" id="team-impact-badge">0</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-label">Routen</div>
+          <div class="stat-tile-value" id="team-route-count">0</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-label">Reisende Mitglieder</div>
+          <div class="stat-tile-value" id="team-traveller-count">0</div>
+        </div>
+      </div>
+
+      <section class="dashboard-card">
         <div class="section-heading">Budget setzen</div>
         <div class="budget-row">
           <div class="budget-input-wrapper">
@@ -161,17 +173,18 @@
           <button id="btn-set-budget" class="btn-primary">Setzen</button>
         </div>
       </section>
-
-      <section class="dashboard-card">
-        <div class="section-heading">Routen-Übersicht</div>
-        <div id="dashboard-routes"></div>
-      </section>
-
-      <section class="dashboard-card">
-        <div class="section-heading">Mitglieder-Übersicht</div>
-        <div id="dashboard-members"></div>
-      </section>
     </div>
+
+    <!-- ── TAB: Routen-Übersicht ──────────────────────────────────────── -->
+    <div id="dash-routes" class="tab-pane dash-pane">
+      <div id="dashboard-routes"></div>
+    </div>
+
+    <!-- ── TAB: Team-Übersicht ────────────────────────────────────────── -->
+    <div id="dash-team" class="tab-pane dash-pane">
+      <div id="dashboard-members"></div>
+    </div>
+
   </aside>
 
   <!-- ── Topbar (info + map style) ──────────────────────────────────────────── -->
