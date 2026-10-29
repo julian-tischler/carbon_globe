@@ -25,6 +25,16 @@ window.CG.ui = (function () {
 
   function _bindStaticEvents() {
 
+    // ── Save / load ───────────────────────────────────────────────────────
+    const loadInput = document.getElementById('load-input');
+    document.getElementById('btn-save').addEventListener('click', _handleSave);
+    document.getElementById('btn-load').addEventListener('click', () => loadInput.click());
+    loadInput.addEventListener('change', () => {
+      const file = loadInput.files[0];
+      loadInput.value = ''; // allow re-loading the same file
+      if (file) _handleLoad(file);
+    });
+
     // ── Team tab ──────────────────────────────────────────────────────────
     document.getElementById('btn-add-member').addEventListener('click', _handleAddMember);
     document.getElementById('new-member-name').addEventListener('keypress', e => {
@@ -700,6 +710,46 @@ window.CG.ui = (function () {
     } catch (_) {
       showToast('Suchdienst nicht erreichbar.');
     }
+  }
+
+  // ── Save / load ────────────────────────────────────────────────────────────
+
+  function _handleSave() {
+    const json = JSON.stringify(team.serialize(), null, 2);
+    const url  = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `carbonglobe-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+    showToast('Planung gespeichert.', 'success');
+  }
+
+  async function _handleLoad(file) {
+    let data;
+    try {
+      data = JSON.parse(await file.text());
+    } catch (_) {
+      return showToast('Datei ist kein gültiges JSON.');
+    }
+
+    const hasData = team.getMembers().length > 0 || team.getRoutes().length > 0;
+    if (hasData && !confirm('Die aktuelle Planung wird durch die Datei ersetzt. Fortfahren?')) return;
+
+    const oldRouteIds = team.getRoutes().map(r => r.id);
+    try {
+      team.deserialize(data);
+    } catch (err) {
+      return showToast(err.message);
+    }
+
+    cgMap.closePopup();
+    oldRouteIds.forEach(id => cgMap.removeRouteLayers(id));
+    cgMap.refreshAllLayers();
+    _expandedRouteId = null;
+    document.getElementById('budget-input').value = '';
+    renderAll();
+    showToast(`„${file.name}“ geladen.`, 'success');
   }
 
   // ── Toast ──────────────────────────────────────────────────────────────────

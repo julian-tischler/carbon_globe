@@ -434,6 +434,17 @@ button {
   text-transform: uppercase;
 }
 
+.file-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.file-bar .btn-secondary { font-size: var(--fs-sm); }
+
 .tab-bar {
   display: flex;
   flex-shrink: 0;

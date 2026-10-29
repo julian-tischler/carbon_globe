@@ -274,6 +274,90 @@ window.CG.team = (function () {
   function setTeamBudget(kg) { _teamBudget = kg; }
   function getTeamBudget()   { return _teamBudget; }
 
+  // ── Serialization ─────────────────────────────────────────────────────────
+
+  const FORMAT  = 'carbonglobe';
+  const VERSION = 1;
+
+  // IDs and colours end up in HTML attributes and layer names, so only accept safe shapes
+  const ID_RE    = /^[\w-]{1,40}$/;
+  const COLOR_RE = /^#[0-9a-f]{3,8}$/i;
+
+  /** Plain JSON-safe snapshot of the whole state. */
+  function serialize() {
+    return {
+      format:         FORMAT,
+      version:        VERSION,
+      savedAt:        new Date().toISOString(),
+      budgetKg:       _teamBudget,
+      activeMemberId: _activeMemberId,
+      activeRouteId:  _activeRouteId,
+      members: getMembers().map(m => ({ ...m })),
+      routes:  getRoutes().map(r => ({
+        ...r,
+        waypoints:         r.waypoints.map(p => [p[0], p[1]]),
+        waypointNames:     [...r.waypointNames],
+        waypointModes:     [...r.waypointModes],
+        assignedMemberIds: [...r.assignedMemberIds],
+      })),
+    };
+  }
+
+  /**
+   * Replaces the whole state with a snapshot from serialize().
+   * Validates first and throws on bad input, so a failed load leaves the state untouched.
+   */
+  function deserialize(data) {
+    if (!data || data.format !== FORMAT) throw new Error('Keine CarbonGlobe-Datei.');
+    if (data.version > VERSION)          throw new Error('Datei stammt aus einer neueren Version.');
+    if (!Array.isArray(data.members) || !Array.isArray(data.routes)) throw new Error('Datei ist beschädigt.');
+
+    const members = data.members.map((m, i) => {
+      if (!m || !ID_RE.test(m.id)) throw new Error('Datei ist beschädigt.');
+      const hours = Number(m.workingHours);
+      return {
+        id:           m.id,
+        name:         String(m.name ?? ''),
+        color:        COLOR_RE.test(m.color) ? m.color : C.MEMBER_COLORS[i % C.MEMBER_COLORS.length],
+        workingHours: hours > 0 ? Math.min(hours, 80) : 1,
+      };
+    });
+    const memberIds = new Set(members.map(m => m.id));
+
+    const routes = data.routes.map((r, i) => {
+      if (!r || !ID_RE.test(r.id) || !Array.isArray(r.waypoints)) throw new Error('Datei ist beschädigt.');
+      const waypoints = r.waypoints.map(p => {
+        const lng = Number(p?.[0]), lat = Number(p?.[1]);
+        if (!isFinite(lng) || !isFinite(lat)) throw new Error('Datei enthält ungültige Koordinaten.');
+        return [lng, lat];
+      });
+      const names = Array.isArray(r.waypointNames) ? r.waypointNames : [];
+      const modes = Array.isArray(r.waypointModes) ? r.waypointModes : [];
+      return {
+        id:                r.id,
+        label:             String(r.label || `Route ${i + 1}`),
+        waypoints,
+        waypointNames:     waypoints.map((_, j) => String(names[j] ?? '')),
+        waypointModes:     waypoints.map((_, j) => Object.hasOwn(C.CO2_FACTORS, modes[j]) ? modes[j] : 'plane'),
+        roundTrip:         !!r.roundTrip,
+        impactFactor:      Object.hasOwn(C.IMPACT_FACTORS, r.impactFactor) ? Number(r.impactFactor) : 2,
+        assignedMemberIds: (Array.isArray(r.assignedMemberIds) ? r.assignedMemberIds : [])
+                             .filter(id => memberIds.has(id)),
+      };
+    });
+
+    _members.clear();
+    _routes.clear();
+    members.forEach(m => _members.set(m.id, m));
+    routes.forEach(r => _routes.set(r.id, r));
+
+    _teamBudget     = Number(data.budgetKg) > 0 ? Number(data.budgetKg) : _teamBudget;
+    _activeMemberId = _members.has(data.activeMemberId) ? data.activeMemberId : null;
+    _activeRouteId  = _routes.has(data.activeRouteId)
+      ? data.activeRouteId
+      : (_routes.size > 0 ? _routes.keys().next().value : null);
+  }
+
   // ── Export ────────────────────────────────────────────────────────────────
 
   return {
@@ -294,5 +378,7 @@ window.CG.team = (function () {
     getTravellingMemberCount,
     // Budget
     setTeamBudget, getTeamBudget,
+    // Serialization
+    serialize, deserialize,
   };
 })();
