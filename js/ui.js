@@ -720,10 +720,16 @@ window.CG.ui = (function () {
     const url  = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
     const a    = document.createElement('a');
     a.href     = url;
-    a.download = `carbonglobe-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `carbonglobe-${_fileStamp(new Date())}.json`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 0);
     showToast('Planung gespeichert.', 'success');
+  }
+
+  /** Local date and time as YYYY-MM-DD_HH-MM, safe for file names and sortable. */
+  function _fileStamp(d) {
+    const p = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_${p(d.getHours())}-${p(d.getMinutes())}`;
   }
 
   async function _handleLoad(file) {
