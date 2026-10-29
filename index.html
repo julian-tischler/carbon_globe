@@ -32,8 +32,9 @@
       </div>
     </div>
 
-    <!-- Save / load the whole planning state as a JSON file -->
+    <!-- New plan, and save / load the whole planning state as a JSON file -->
     <div class="file-bar">
+      <button id="btn-new" class="btn-secondary" title="Leere Planung beginnen">📄 Neu</button>
       <button id="btn-save" class="btn-secondary" title="Als JSON-Datei speichern">💾 Speichern</button>
       <button id="btn-load" class="btn-secondary" title="JSON-Datei laden">📂 Laden</button>
       <input type="file" id="load-input" accept=".json,application/json" hidden />
@@ -125,7 +126,7 @@
       </div>
       <div class="section">
         <div class="section-title">Hinweis</div>
-        <div class="empty-hint flush">Änderungen gelten nur für diese Sitzung. Mit „Speichern“ wird die Planung als Datei gesichert und lässt sich über „Laden“ wiederherstellen.</div>
+        <div class="empty-hint flush">Die Planung wird automatisch im Browser gespeichert. Mit „Speichern“ lässt sie sich zusätzlich als Datei sichern, z.&nbsp;B. zum Weitergeben.</div>
       </div>
     </div><!-- /settings-tab -->
 

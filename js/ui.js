@@ -27,6 +27,7 @@ window.CG.ui = (function () {
 
     // ── Save / load ───────────────────────────────────────────────────────
     const loadInput = document.getElementById('load-input');
+    document.getElementById('btn-new').addEventListener('click', _handleNew);
     document.getElementById('btn-save').addEventListener('click', _handleSave);
     document.getElementById('btn-load').addEventListener('click', () => loadInput.click());
     loadInput.addEventListener('change', () => {
@@ -736,12 +737,24 @@ window.CG.ui = (function () {
     const hasData = team.getMembers().length > 0 || team.getRoutes().length > 0;
     if (hasData && !confirm('Die aktuelle Planung wird durch die Datei ersetzt. Fortfahren?')) return;
 
-    const oldRouteIds = team.getRoutes().map(r => r.id);
     try {
-      team.deserialize(data);
+      _replaceState(data);
     } catch (err) {
       return showToast(err.message);
     }
+    showToast(`„${file.name}“ geladen.`, 'success');
+  }
+
+  function _handleNew() {
+    if (!confirm('Aktuelle Planung verwerfen und neu beginnen?')) return;
+    _replaceState({ format: 'carbonglobe', version: 1, members: [], routes: [] });
+    showToast('Neue Planung begonnen.', 'success');
+  }
+
+  /** Swaps in a serialized state and redraws map and UI. Throws if `data` is invalid. */
+  function _replaceState(data) {
+    const oldRouteIds = team.getRoutes().map(r => r.id);
+    team.deserialize(data);
 
     cgMap.closePopup();
     oldRouteIds.forEach(id => cgMap.removeRouteLayers(id));
@@ -749,7 +762,6 @@ window.CG.ui = (function () {
     _expandedRouteId = null;
     document.getElementById('budget-input').value = '';
     renderAll();
-    showToast(`„${file.name}“ geladen.`, 'success');
   }
 
   // ── Toast ──────────────────────────────────────────────────────────────────

@@ -19,6 +19,12 @@ window.CG.team = (function () {
   let _activeRouteId  = null;
   let _teamBudget     = 10000; // default: 10 t CO₂
 
+  const _listeners = [];
+
+  /** Subscribe to every state change (used for autosave). */
+  function onChange(fn) { _listeners.push(fn); }
+  function _changed()   { _listeners.forEach(fn => fn()); }
+
   // ── Members ───────────────────────────────────────────────────────────────
 
   function addMember(name, workingHours = 1) {
@@ -30,6 +36,7 @@ window.CG.team = (function () {
       color,
       workingHours: Number(workingHours) > 0 ? Math.min(Number(workingHours), 80) : 1,
     });
+    _changed();
     return id;
   }
 
@@ -37,6 +44,7 @@ window.CG.team = (function () {
     const member = _members.get(id);
     if (!member) return;
     member.name = name.trim() || member.name;
+    _changed();
   }
 
   function setMemberHours(id, hours) {
@@ -44,6 +52,7 @@ window.CG.team = (function () {
     if (!member) return;
     const value = Number(hours);
     member.workingHours = value > 0 ? Math.min(value, 80) : member.workingHours;
+    _changed();
   }
 
   function getMemberHours(id) {
@@ -76,12 +85,13 @@ window.CG.team = (function () {
     for (const r of _routes.values()) {
       r.assignedMemberIds = r.assignedMemberIds.filter(mid => mid !== id);
     }
+    _changed();
   }
 
   function getMembers()  { return Array.from(_members.values()); }
   function getMember(id) { return _members.get(id) ?? null; }
 
-  function setActiveMember(id) { _activeMemberId = id; }
+  function setActiveMember(id) { _activeMemberId = id; _changed(); }
   function getActiveMember()   { return _activeMemberId ? (_members.get(_activeMemberId) ?? null) : null; }
   function getActiveMemberId() { return _activeMemberId; }
 
@@ -99,6 +109,7 @@ window.CG.team = (function () {
       impactFactor:      2,     // 1 | 2 | 3
       assignedMemberIds: [],    // string[]
     });
+    _changed();
     return id;
   }
 
@@ -106,28 +117,32 @@ window.CG.team = (function () {
     _routes.delete(id);
     if (_activeRouteId === id)
       _activeRouteId = _routes.size > 0 ? _routes.keys().next().value : null;
+    _changed();
   }
 
   function getRoutes()   { return Array.from(_routes.values()); }
   function getRoute(id)  { return _routes.get(id) ?? null; }
 
-  function setActiveRoute(id) { _activeRouteId = id; }
+  function setActiveRoute(id) { _activeRouteId = id; _changed(); }
   function getActiveRoute()   { return _activeRouteId ? (_routes.get(_activeRouteId) ?? null) : null; }
   function getActiveRouteId() { return _activeRouteId; }
 
   function setRouteLabel(id, label) {
     const r = _routes.get(id);
     if (r) r.label = label;
+    _changed();
   }
 
   function setRouteRoundTrip(id, roundTrip) {
     const r = _routes.get(id);
     if (r) r.roundTrip = !!roundTrip;
+    _changed();
   }
 
   function setRouteImpact(id, factor) {
     const r = _routes.get(id);
     if (r) r.impactFactor = Number(factor);
+    _changed();
   }
 
   // ── Member assignment ─────────────────────────────────────────────────────
@@ -136,12 +151,14 @@ window.CG.team = (function () {
     const r = _routes.get(routeId);
     if (!r || r.assignedMemberIds.includes(memberId)) return;
     r.assignedMemberIds.push(memberId);
+    _changed();
   }
 
   function unassignMember(routeId, memberId) {
     const r = _routes.get(routeId);
     if (!r) return;
     r.assignedMemberIds = r.assignedMemberIds.filter(id => id !== memberId);
+    _changed();
   }
 
   // ── Waypoints ─────────────────────────────────────────────────────────────
@@ -153,6 +170,7 @@ window.CG.team = (function () {
     r.waypoints.push([coords[0], coords[1]]);
     r.waypointNames.push(name || '');
     r.waypointModes.push(mode);
+    _changed();
   }
 
   /** Removing a middle waypoint joins its neighbours using the following leg's mode. */
@@ -162,12 +180,14 @@ window.CG.team = (function () {
     r.waypoints.splice(index, 1);
     r.waypointNames.splice(index, 1);
     r.waypointModes.splice(index, 1);
+    _changed();
   }
 
   function setWaypointMode(routeId, index, mode) {
     const r = _routes.get(routeId);
     if (!r || index <= 0 || index >= r.waypoints.length) return;
     r.waypointModes[index] = mode;
+    _changed();
   }
 
   function moveWaypoint(routeId, index, newCoords) {
@@ -175,6 +195,7 @@ window.CG.team = (function () {
     if (!r || index < 0 || index >= r.waypoints.length) return;
     r.waypoints[index] = [newCoords[0], newCoords[1]];
     r.waypointNames[index] = '';
+    _changed();
   }
 
   // ── Statistics ────────────────────────────────────────────────────────────
@@ -271,7 +292,7 @@ window.CG.team = (function () {
     return [...ids].filter(id => _members.has(id)).length;
   }
 
-  function setTeamBudget(kg) { _teamBudget = kg; }
+  function setTeamBudget(kg) { _teamBudget = kg; _changed(); }
   function getTeamBudget()   { return _teamBudget; }
 
   // ── Serialization ─────────────────────────────────────────────────────────
@@ -356,6 +377,7 @@ window.CG.team = (function () {
     _activeRouteId  = _routes.has(data.activeRouteId)
       ? data.activeRouteId
       : (_routes.size > 0 ? _routes.keys().next().value : null);
+    _changed();
   }
 
   // ── Export ────────────────────────────────────────────────────────────────
@@ -380,5 +402,7 @@ window.CG.team = (function () {
     setTeamBudget, getTeamBudget,
     // Serialization
     serialize, deserialize,
+    // Change notification
+    onChange,
   };
 })();
